@@ -311,6 +311,48 @@ body { counter-reset: sec; } .col { gap: 18px; }
 #hudread { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--edge) + 74px); pointer-events: none; white-space: nowrap;
   font: 400 10px "JetBrains Mono", monospace; color: rgba(159,228,255,.65); letter-spacing: .18em; }
 #hudread b { color: var(--acc); font-weight: 500; }
+
+/* ---------- Settings panel (⚙ in the player, or the , key) ---------- */
+#settings { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 20; width: min(560px, calc(100vw - 32px));
+  max-height: min(760px, calc(100vh - 40px)); display: none; flex-direction: column; padding: 0 22px 16px;
+  --c: rgba(159,228,255,.7); --k: 12px; border: 1px solid rgba(159,228,255,.22); background:
+  linear-gradient(var(--c),var(--c)) top left/var(--k) 1px no-repeat, linear-gradient(var(--c),var(--c)) top left/1px var(--k) no-repeat,
+  linear-gradient(var(--c),var(--c)) top right/var(--k) 1px no-repeat, linear-gradient(var(--c),var(--c)) top right/1px var(--k) no-repeat,
+  linear-gradient(var(--c),var(--c)) bottom left/var(--k) 1px no-repeat, linear-gradient(var(--c),var(--c)) bottom left/1px var(--k) no-repeat,
+  linear-gradient(var(--c),var(--c)) bottom right/var(--k) 1px no-repeat, linear-gradient(var(--c),var(--c)) bottom right/1px var(--k) no-repeat,
+  linear-gradient(180deg, rgba(6,22,34,.96), rgba(3,12,20,.97)); box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+#settings.open { display: flex; }
+#settings .phead::before { content: "⚙ //"; counter-increment: none; }
+#settings .sbody { flex: 1; min-height: 0; padding-right: 4px; }
+#settings section { padding: 14px 0; border-bottom: 1px solid var(--line); }
+#settings section:last-child { border-bottom: 0; }
+#settings h4 { font: 600 11px var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--acc); margin-bottom: 6px; }
+#settings .hint { font-size: 12.5px; line-height: 1.5; color: var(--fg2); margin: 2px 0 10px; }
+#settings input[type=text], #settings input[type=date] { width: 100%; background: rgba(159,228,255,.05); border: 1px solid rgba(159,228,255,.18);
+  color: var(--fg); padding: 9px 11px; font: 400 13px var(--mono); outline: none; border-radius: 0; color-scheme: dark; }
+#settings input[type=text]:focus, #settings input[type=date]:focus { border-color: rgba(159,228,255,.55); }
+#settings .cityrow { display: flex; gap: 8px; margin-top: 8px; }
+#settings .cityrow .btn { flex: none; }
+#settings .cityres { margin-top: 6px; }
+#settings .cityres div { padding: 7px 10px; font-size: 13px; cursor: pointer; border-left: 2px solid transparent; }
+#settings .cityres div:hover { background: rgba(159,228,255,.08); border-left-color: var(--acc); }
+#settings .cityres small { color: var(--mid); margin-left: 6px; font-family: var(--mono); font-size: 10.5px; }
+#settings .chosen { margin-top: 8px; font: 400 11.5px var(--mono); color: var(--acc); letter-spacing: .04em; }
+#settings .chosen.off { color: var(--mid); }
+#settings label.chk { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--fg2); margin-top: 9px; cursor: pointer; }
+#settings label.chk input, #settings label.switch input { accent-color: #9fe4ff; width: 15px; height: 15px; }
+#settings label.switch { display: flex; align-items: center; gap: 10px; cursor: pointer; font: 600 11px var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--acc); }
+#settings .seg { display: inline-flex; margin-top: 10px; border: 1px solid rgba(159,228,255,.22); }
+#settings .seg label { padding: 6px 14px; font: 500 12px var(--mono); color: var(--fg2); cursor: pointer; }
+#settings .seg input { display: none; }
+#settings .seg label:has(input:checked) { background: rgba(159,228,255,.16); color: var(--fg); }
+#settings .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+#settings .row2 label { font: 400 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--mid); }
+#settings .row2 input { margin-top: 5px; }
+#settings .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+#settings .box.off { opacity: .35; pointer-events: none; }
+#settings .sfoot { display: flex; justify-content: space-between; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+#settings .sfoot small { align-self: center; font: 400 10.5px var(--mono); color: var(--low); letter-spacing: .04em; }
 @media (prefers-reduced-motion: reduce) { #hudring .spin, #hudring .sweep { animation: none; } }
 
 /* ---------- Tall layout: #reel (phone videos, 9:16) or any portrait screen ----------
@@ -397,6 +439,7 @@ html.tall #hudread { bottom: calc(var(--edge) + 76px); font-size: min(10px, 2.2v
     <div id="smeta"><span class="eq"><i></i><i></i><i></i></span><span id="metaText">Click any dot on the globe</span></div>
   </div>
   <div class="controls">
+    <button id="setBtn" title="Settings (,)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
     <button id="searchBtn" title="Search (/)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
     <button id="satBtn" title="Satellites: ISS + Starlink (S)"><svg viewBox="0 0 24 24"><path d="M13 7 9 3 5 7l4 4M17 11l4 4-4 4-4-4M8 12l4 4M16 8l-1.5 1.5"/><circle cx="12" cy="12" r="2"/><path d="M3 21c0-3 2-5 5-5"/></svg></button>
     <button id="cableBtn" title="Undersea internet cables (C)"><svg viewBox="0 0 24 24"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="19" r="2"/><path d="M7 6h10M6 8l5 9M18 8l-5 9"/></svg></button>
@@ -404,6 +447,52 @@ html.tall #hudread { bottom: calc(var(--edge) + 76px); font-size: min(10px, 2.2v
     <button id="playBtn" title="Play / pause (Space)"><svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z"/></svg></button>
     <input id="vol" type="range" min="0" max="1" step="0.01" value="0.7" title="Volume" />
   </div>
+</div>
+
+<div id="settings" class="panel" role="dialog" aria-label="Settings">
+  <div class="phead">Settings<span class="meta">saved on this computer</span><button class="fold" id="sClose" title="Close (Esc)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="sbody scroll">
+    <section>
+      <h4>Your city</h4>
+      <p class="hint">Used for the weather and your clock. Leave empty to skip the weather.</p>
+      <div class="cityrow"><input type="text" id="sHomeQ" placeholder="Search your city…" autocomplete="off"><button class="btn" id="sHomeFind">Find</button></div>
+      <div class="cityres" id="sHomeRes"></div>
+      <div class="chosen" id="sHomeChosen"></div>
+      <label class="chk"><input type="checkbox" id="sHomeTz"> Clock follows this city's time zone (off = this computer's time zone)</label>
+      <div class="seg"><label><input type="radio" name="sUnits" value="C">°C</label><label><input type="radio" name="sUnits" value="F">°F</label></div>
+    </section>
+    <section>
+      <label class="switch"><input type="checkbox" id="sFarOn"> Someone far away</label>
+      <p class="hint">Who's far away from you? We'll show their local time under yours and draw a glowing line on the globe connecting you two. Optional — a partner, family, a best friend…</p>
+      <div class="box" id="sFarBox">
+        <input type="text" id="sFarName" placeholder="Their name — e.g. Mom, Alex, my best friend" autocomplete="off">
+        <div class="cityrow"><input type="text" id="sFarQ" placeholder="Their city…" autocomplete="off"><button class="btn" id="sFarFind">Find</button></div>
+        <div class="cityres" id="sFarRes"></div>
+        <div class="chosen" id="sFarChosen"></div>
+      </div>
+    </section>
+    <section>
+      <label class="switch"><input type="checkbox" id="sDaysOn"> Count the days</label>
+      <p class="hint">A day counter with 100-day milestones and anniversaries — for a relationship, a friendship, a new home, a streak… Optional.</p>
+      <div class="box row2" id="sDaysBox">
+        <label>Since<input type="date" id="sSince"></label>
+        <label>First date (optional)<input type="date" id="sFirst"></label>
+      </div>
+    </section>
+    <section>
+      <h4>Show on the wallpaper</h4>
+      <div class="grid2">
+        <label class="chk"><input type="checkbox" data-show="outages"> Internet outages</label>
+        <label class="chk"><input type="checkbox" data-show="intel"> Threat intel</label>
+        <label class="chk"><input type="checkbox" data-show="born"> Born today</label>
+        <label class="chk"><input type="checkbox" data-show="svc"> Services</label>
+        <label class="chk"><input type="checkbox" data-show="sats"> Satellites</label>
+        <label class="chk"><input type="checkbox" data-show="cables"> Undersea cables</label>
+        <label class="chk"><input type="checkbox" data-show="deskzone"> Desktop icon frame</label>
+      </div>
+    </section>
+  </div>
+  <div class="sfoot"><button class="btn" id="sReset">Reset</button><small>Applying reloads the wallpaper</small><button class="btn primary" id="sSave">Save &amp; apply</button></div>
 </div>
 
 <div id="toast" class="panel"></div>
@@ -476,7 +565,12 @@ window.DESKMATE_CONFIG = {
   // #demo = fake PC stats + privacy, #reel = vertical layout for phone videos + privacy.
   const FLAGS = (location.hash + location.search).toLowerCase();
   const DEMO = /demo/.test(FLAGS), REEL = /reel/.test(FLAGS), PRIVATE = DEMO || REEL;
-  const CFG = window.DESKMATE_CONFIG || {};
+  // config.js gives the defaults; whatever the viewer saves in ⚙ Settings (localStorage) wins.
+  const SETTINGS_KEY = 'deskmate-settings';
+  let SAVED = {};
+  try { SAVED = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {}; } catch (e) {}
+  const CFG = Object.assign({}, window.DESKMATE_CONFIG || {}, SAVED);
+  const SHOW = Object.assign({ outages: true, intel: true, born: true, svc: true, deskzone: true }, CFG.show || {});
   const H = CFG.home || {};
   const HOME = { tz: !H.timezone || H.timezone === 'auto' ? Intl.DateTimeFormat().resolvedOptions().timeZone : H.timezone,
     lat: typeof H.lat === 'number' ? H.lat : null, lng: typeof H.lng === 'number' ? H.lng : null, units: H.units === 'C' ? 'C' : 'F' };
@@ -502,7 +596,8 @@ window.DESKMATE_CONFIG = {
     const dayShift = dayNum(b.year, b.month, b.day) - dayNum(a.year, a.month, a.day);
     const [ht, hap] = hm(HER.tz, d);
     const night = b.hour >= 22 || b.hour < 7;
-    $('her').innerHTML = `<span class="who">${esc(HER.name)} time</span><b>${esc(ht)}${hap ? `<small>${esc(hap)}</small>` : ''}</b>` +
+    const who = /^(her|his|their|my|our)$/i.test(HER.name) ? `${HER.name} time` : `${HER.name}'s time`;
+    $('her').innerHTML = `<span class="who">${esc(who)}</span><b>${esc(ht)}${hap ? `<small>${esc(hap)}</small>` : ''}</b>` +
       `<span>${esc(d.toLocaleDateString([], { weekday: 'short', timeZone: HER.tz }))}${dayShift > 0 ? ' (tomorrow)' : dayShift < 0 ? ' (yesterday)' : ''} · ${diff >= 0 ? '+' : ''}${diff}h · ${night ? 'night' : b.hour < 18 ? 'day' : 'evening'}</span>`;
   }
   setTimeout(() => { tick(); setInterval(tick, 1000); });  // after helpers below are defined
@@ -594,7 +689,7 @@ window.DESKMATE_CONFIG = {
   // Hover → the whole cable lights up pink with name, length, year, countries and owners.
   const CABLE_PATHS = (window.CABLES || []).flatMap(c => c.paths.map(pts => ({ c, pts })));
   let hoverCable = null, cablesOn = true;
-  try { cablesOn = localStorage.getItem('cables') !== 'off'; } catch (e) {}
+  try { cablesOn = localStorage.getItem('cables') ? localStorage.getItem('cables') !== 'off' : SHOW.cables !== false; } catch (e) {}
   world.pathPoints('pts').pathPointLat(p => p[0]).pathPointLng(p => p[1])
     .pathPointAlt(0.0015).pathResolution(3).pathTransitionDuration(0).pathStroke(null)
     ;
@@ -650,7 +745,7 @@ window.DESKMATE_CONFIG = {
   // Orbit data (TLE): CelesTrak (whole Starlink fleet) if reachable, else tle.ivanstanojevic.me (ISS + 500 Starlink).
   const TLE_API = 'https://tle.ivanstanojevic.me/api/tle/';
   let satsOn = true, issRec = null, starRecs = [], issNow = null;
-  try { satsOn = localStorage.getItem('sats') !== 'off'; } catch (e) {}
+  try { satsOn = localStorage.getItem('sats') ? localStorage.getItem('sats') !== 'off' : SHOW.sats !== false; } catch (e) {}
   const satGeo = (rec, date) => {
     try {
       const pv = satellite.propagate(rec, date);
@@ -972,12 +1067,13 @@ window.DESKMATE_CONFIG = {
   function closeSearch() { $('search').classList.remove('open'); $('q').value = ''; $('results').innerHTML = ''; }
   $('searchBtn').onclick = () => $('search').classList.contains('open') ? closeSearch() : openSearch();
   addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeArticle(); closeBorn(); return closeSearch(); }
+    if (e.key === 'Escape') { closeSettings(); closeArticle(); closeBorn(); return closeSearch(); }
     if (e.target.tagName === 'INPUT') return;
     if (e.code === 'Space') { e.preventDefault(); $('playBtn').click(); }
     if (e.key === 'r') randomStation();
     if (e.key === 'c') toggleCables();
     if (e.key === 's') toggleSats();
+    if (e.key === ',') { e.preventDefault(); openSettings(); }
     if (e.key === '/') { e.preventDefault(); openSearch(); }
   });
   $('q').oninput = e => {
@@ -1360,7 +1456,7 @@ window.DESKMATE_CONFIG = {
   // ---------- Together counter 💕 (config.together; the first day counts as Day 1) ----------
   const ymd = v => { const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(String(v || '')); return m ? [+m[1], +m[2], +m[3]] : null; };
   const T = !PRIVATE && CFG.together ? CFG.together : null;
-  const US = T && ymd(T.since) ? { couple: ymd(T.since), firstDate: ymd(T.firstDate) || ymd(T.since) } : null;
+  const US = T && ymd(T.since) ? { couple: ymd(T.since), firstDate: ymd(T.firstDate) } : null;
   const dayNum = (y, m, d) => Math.round(Date.UTC(y, m - 1, d) / 864e5);           // calendar days, no timezone drift
   const todayNum = () => { const n = zparts(HOME.tz); return dayNum(n.year, n.month, n.day); };
   const fromNum = n => new Date(n * 864e5).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
@@ -1368,7 +1464,7 @@ window.DESKMATE_CONFIG = {
 
   function renderUs() {
     if (!US) { $('us').style.display = 'none'; return; }
-    const today = todayNum(), start = dayNum(...US.couple), first = dayNum(...US.firstDate);
+    const today = todayNum(), start = dayNum(...US.couple), first = US.firstDate ? dayNum(...US.firstDate) : null;
     const day = today - start + 1;
     // upcoming moments: every 100 days, couple anniversaries, first-date anniversaries
     const events = [];
@@ -1376,15 +1472,15 @@ window.DESKMATE_CONFIG = {
       events.push({ n: start + k - 1, label: `${k.toLocaleString()} days` });
     const y0 = zparts(HOME.tz).year;
     for (let y = y0 - 1; y <= y0 + 2; y++) {
-      const a = y - US.couple[0], b = y - US.firstDate[0];
+      const a = y - US.couple[0], b = US.firstDate ? y - US.firstDate[0] : 0;
       if (a > 0) events.push({ n: dayNum(y, US.couple[1], US.couple[2]), label: `${ord(a)} anniversary` });
-      if (b > 0) events.push({ n: dayNum(y, US.firstDate[1], US.firstDate[2]), label: `${ord(b)} first-date anniv.` });
+      if (b > 0 && US.firstDate) events.push({ n: dayNum(y, US.firstDate[1], US.firstDate[2]), label: `${ord(b)} first-date anniv.` });
     }
     const upcoming = events.filter(e => e.n >= today).sort((a, b) => a.n - b.n);
     const todays = upcoming.filter(e => e.n === today), next = upcoming.find(e => e.n > today);
     const us = $('us');
     us.classList.toggle('party', todays.length > 0);
-    us.title = `Together since ${fromNum(start)} · first date ${fromNum(first)} (${(today - first + 1).toLocaleString()} days ago)` +
+    us.title = `Since ${fromNum(start)}` + (first != null ? ` · first date ${fromNum(first)} (${(today - first + 1).toLocaleString()} days ago)` : '') +
       (next ? ` · next: ${next.label} on ${fromNum(next.n)}` : '');
     us.innerHTML = `<span class="heart">♥</span><span>Day <b id="usDay">${day.toLocaleString()}</b></span><span class="sep">·</span>` +
       (todays.length ? `<span id="usNext">today is our <b>${esc(todays.map(e => e.label).join(' & '))}</b> 🎉</span>`
@@ -1421,6 +1517,98 @@ window.DESKMATE_CONFIG = {
   function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   let toastT;
   function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 4000); }
+
+  // ---------- Hide sections the viewer switched off in Settings ----------
+  ['outages', 'intel', 'born', 'svc', 'deskzone'].forEach(k => { if (SHOW[k] === false && $(k)) $(k).style.display = 'none'; });
+
+  // ---------- ⚙ Settings panel: city (weather + clock), someone far away, day counter, what to show ----------
+  // Everything is optional and saved in this browser (localStorage); "Save & apply" reloads the wallpaper.
+  const draft = {};
+  const placeName = c => [c.name, c.admin1 && c.admin1 !== c.name ? c.admin1 : '', c.country].filter(Boolean).join(', ');
+  async function findCity(q) {
+    const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?' + new URLSearchParams({ name: q, count: 6, language: 'en', format: 'json' }));
+    return ((await r.json()).results || []).filter(c => typeof c.latitude === 'number' && c.timezone);
+  }
+  function cityPicker(prefix, onPick) {
+    const go = async () => {
+      const q = $(prefix + 'Q').value.trim(), box = $(prefix + 'Res');
+      if (q.length < 2) return;
+      box.innerHTML = '<div class="empty">Searching…</div>';
+      try {
+        const list = await findCity(q);
+        box.innerHTML = list.length ? '' : '<div class="empty">No city found — try another spelling</div>';
+        list.forEach(c => {
+          const d = document.createElement('div');
+          d.innerHTML = `${flag(c.country_code)} ${esc(c.name)}<small>${esc([c.admin1, c.country].filter(Boolean).join(', '))} · ${esc(c.timezone)}</small>`;
+          d.onclick = () => { box.innerHTML = ''; onPick({ city: placeName(c), lat: +c.latitude.toFixed(3), lng: +c.longitude.toFixed(3), timezone: c.timezone }); };
+          box.appendChild(d);
+        });
+      } catch (e) { box.innerHTML = '<div class="empty">City search is unreachable right now</div>'; }
+    };
+    $(prefix + 'Find').onclick = go;
+    $(prefix + 'Q').onkeydown = e => { if (e.key === 'Enter') go(); };
+  }
+  function showChosen() {
+    const h = draft.home;
+    $('sHomeChosen').className = 'chosen' + (h.lat == null ? ' off' : '');
+    $('sHomeChosen').textContent = h.lat == null ? 'Not set — no weather · clock uses this computer\'s time zone'
+      : `✓ ${h.city || `${h.lat}, ${h.lng}`} · ${h.timezone}`;
+    const f = draft.far;
+    $('sFarChosen').className = 'chosen' + (f.lat == null ? ' off' : '');
+    $('sFarChosen').textContent = f.lat == null ? 'No city chosen yet' : `✓ ${f.city || `${f.lat}, ${f.lng}`} · ${f.timezone}`;
+    $('sFarBox').classList.toggle('off', !$('sFarOn').checked);
+    $('sDaysBox').classList.toggle('off', !$('sDaysOn').checked);
+  }
+  function openSettings() {
+    const h = CFG.home || {}, f = CFG.partner || {}, t = CFG.together || {};
+    draft.home = { city: h.city || '', lat: typeof h.lat === 'number' ? h.lat : null, lng: typeof h.lng === 'number' ? h.lng : null,
+      timezone: h.timezone && h.timezone !== 'auto' ? h.timezone : HOME.tz };
+    draft.far = { city: f.city || '', lat: typeof f.lat === 'number' ? f.lat : null, lng: typeof f.lng === 'number' ? f.lng : null, timezone: f.timezone || '' };
+    $('sHomeQ').value = ''; $('sFarQ').value = ''; $('sHomeRes').innerHTML = ''; $('sFarRes').innerHTML = '';
+    $('sHomeTz').checked = !!(h.timezone && h.timezone !== 'auto');
+    document.querySelectorAll('input[name=sUnits]').forEach(r => r.checked = r.value === (HOME.units || 'C'));
+    $('sFarOn').checked = !!(CFG.partner && CFG.partner.timezone);
+    $('sFarName').value = f.name || '';
+    $('sDaysOn').checked = !!(CFG.together && CFG.together.since);
+    $('sSince').value = t.since || ''; $('sFirst').value = t.firstDate || '';
+    document.querySelectorAll('#settings [data-show]').forEach(cb => {
+      const k = cb.dataset.show;
+      cb.checked = k === 'sats' ? satsOn : k === 'cables' ? cablesOn : SHOW[k] !== false;
+    });
+    showChosen();
+    $('settings').classList.add('open');
+  }
+  function closeSettings() { $('settings').classList.remove('open'); }
+  cityPicker('sHome', c => { draft.home = c; if (!$('sHomeTz').checked) $('sHomeTz').checked = true; showChosen(); });
+  cityPicker('sFar', c => { draft.far = c; showChosen(); });
+  $('sFarOn').onchange = $('sDaysOn').onchange = showChosen;
+  $('setBtn').onclick = () => $('settings').classList.contains('open') ? closeSettings() : openSettings();
+  $('sClose').onclick = closeSettings;
+  $('sSave').onclick = () => {
+    const units = (document.querySelector('input[name=sUnits]:checked') || {}).value || 'C';
+    const h = draft.home, f = draft.far;
+    if ($('sFarOn').checked && f.lat == null) { toast('Pick their city first (or switch "Someone far away" off)'); return; }
+    if ($('sDaysOn').checked && !$('sSince').value) { toast('Pick the start date (or switch "Count the days" off)'); return; }
+    const show = {};
+    document.querySelectorAll('#settings [data-show]').forEach(cb => show[cb.dataset.show] = cb.checked);
+    const out = {
+      home: { city: h.city, lat: h.lat, lng: h.lng, units, timezone: $('sHomeTz').checked && h.lat != null ? h.timezone : 'auto' },
+      partner: $('sFarOn').checked ? { name: $('sFarName').value.trim() || 'Them', city: f.city, lat: f.lat, lng: f.lng, timezone: f.timezone } : null,
+      together: $('sDaysOn').checked ? { since: $('sSince').value, firstDate: $('sFirst').value || null } : null,
+      startView: CFG.startView || null,
+      show
+    };
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(out));
+      localStorage.setItem('sats', show.sats ? 'on' : 'off'); localStorage.setItem('cables', show.cables ? 'on' : 'off');
+      ['wx', 'born'].forEach(k => localStorage.removeItem(k));   // fresh weather / born-today for the new place
+    } catch (e) { toast('Could not save settings in this browser'); return; }
+    location.reload();
+  };
+  $('sReset').onclick = () => {
+    try { [SETTINGS_KEY, 'sats', 'cables', 'wx', 'born'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
+    location.reload();
+  };
 
   load();
   loadOutages();

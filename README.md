@@ -20,7 +20,8 @@ It's a single HTML file. Run it as your wallpaper with **Plash** (macOS) or **Li
 - **📜 Born today.** One notable historical figure born on today's date, with their Wikipedia introduction.
 - **🖥️ PC metrics (Windows + Lively).** CPU, GPU, memory, and network up/down with a live graph.
 - **⏰ Clock and weather.** Your timezone, plus optional weather from [Open-Meteo](https://open-meteo.com).
-- **💕 Optional "someone far away" mode.** A second person's local time, a glowing arc between your cities, and a days-together counter with 100-day milestones.
+- **💕 Optional "someone far away".** Their local time, plus a glowing line between your two cities. There's also an optional day counter with 100-day milestones. Both are off unless you switch them on.
+- **⚙️ Settings panel.** Set your city (searched by name), °C/°F, the optional extras, and which panels to show. No files to edit.
 - **📱 Vertical reel layout** for phone videos (`#reel`).
 
 <p align="center"><img src="docs/reel.png" width="270" alt="Vertical reel layout"></p>
@@ -40,11 +41,19 @@ Everything runs from free public APIs: no accounts, no keys, no servers. If you'
 
 **Windows:** install [Lively Wallpaper](https://www.rocksdanister.com/lively/) (free, Microsoft Store). Add **`deskmate-lively.zip`** (not the `.html`). The zip turns on Lively's system information, which feeds the PC metrics panel. In Lively's settings, turn on mouse input and wallpaper audio.
 
+**Make it yours:** click the **⚙** button in the radio player (or press <kbd>,</kbd>):
+- **Your city:** search it by name. This sets the weather and, if you like, the clock's time zone. Choose °C or °F.
+- **Someone far away** *(optional, off by default)*: *"Who's far away from you?"* Their local time shows under yours, and a glowing line on the globe connects you two. It works for a partner, family or a best friend.
+- **Count the days** *(optional, off by default)*: a day counter with 100-day milestones and anniversaries.
+- **Show on the wallpaper:** turn outages, threat intel, born today, services, satellites, cables or the desktop frame on and off.
+
+Settings are saved on your computer. No files to edit, nothing to rebuild.
+
 **Desktop icons:** the dashed `LOCALHOST · 127.0.0.1` frame above the globe is a spot for your desktop folders. Drag your icons into it. On Windows, first turn off *View → Auto arrange icons*.
 
-## Configure
+## Configure (for builders)
 
-Edit **`wallpaper/config.js`**, then rebuild:
+Most people should just use the **⚙ Settings** panel. If you build the file yourself, you can bake in defaults by editing **`wallpaper/config.js`**. Anything saved in ⚙ Settings overrides these:
 
 ```js
 window.DESKMATE_CONFIG = {
@@ -69,6 +78,7 @@ window.DESKMATE_CONFIG = {
 | <kbd>/</kbd> | Search |
 | <kbd>C</kbd> | Show / hide cables |
 | <kbd>S</kbd> | Show / hide satellites |
+| <kbd>,</kbd> | Settings |
 | <kbd>Esc</kbd> | Close |
 
 ## Build from source
