@@ -29,7 +29,11 @@ Everything runs from free public APIs: no accounts, no keys, no servers. If you'
 
 ## Install
 
-1. Download `globe-radio-wallpaper.html` from the [latest release](../../releases), or build it yourself (see below).
+1. Download a ready-made file from the [`download/`](download) folder (open the file, then click the **Download raw file** ↓ button):
+   - **Mac:** [`globe-radio-wallpaper.html`](download/globe-radio-wallpaper.html)
+   - **Windows:** [`deskmate-lively.zip`](download/deskmate-lively.zip)
+
+   Or build it yourself (see below).
 2. Put it somewhere permanent, e.g. `Documents/Wallpaper/`.
 
 **macOS:** install [Plash](https://sindresorhus.com/plash) (free, App Store) → menu bar icon → **Add Website…** → choose the local file. Turn on **Browsing Mode** to click and play radio. Turn off "reload interval" and "mute audio".
