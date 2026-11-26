@@ -22,9 +22,6 @@ It's a single HTML file. Run it as your wallpaper with **Plash** (macOS) or **Li
 - **⏰ Clock and weather.** Your timezone, plus optional weather from [Open-Meteo](https://open-meteo.com).
 - **💕 Optional "someone far away".** Their local time, plus a glowing line between your two cities. There's also an optional day counter with 100-day milestones. Both are off unless you switch them on.
 - **⚙️ Settings panel.** Set your city (searched by name), °C/°F, the optional extras, and which panels to show. No files to edit.
-- **📱 Vertical reel layout** for phone videos (`#reel`).
-
-<p align="center"><img src="docs/reel.png" width="270" alt="Vertical reel layout"></p>
 
 Everything runs from free public APIs: no accounts, no keys, no servers. If you're offline, it keeps showing the last data it had.
 
@@ -64,10 +61,7 @@ window.DESKMATE_CONFIG = {
 };
 ```
 
-**URL flags** (add them to the end of the file's address):
-- `#demo`: fake PC numbers, and hides the partner and together parts. Good for screenshots.
-- `#reel`: vertical 9:16 layout for phone videos, also private. It turns on automatically in any portrait window.
-- Combine them: `#demo,reel`.
+**URL flag:** add `#demo` to the end of the file's address for fake PC numbers. It also hides the partner and together parts, which is handy for screenshots.
 
 **Keys:**
 
