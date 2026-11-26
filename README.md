@@ -61,8 +61,6 @@ window.DESKMATE_CONFIG = {
 };
 ```
 
-**URL flag:** add `#demo` to the end of the file's address for fake PC numbers. It also hides the partner and together parts, which is handy for screenshots.
-
 **Keys:**
 
 | Key | Action |
