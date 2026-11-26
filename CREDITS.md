@@ -6,7 +6,7 @@ The project's own code is MIT-licensed (see `LICENSE`). Everything below is thir
 
 | What | Where | Licence | Notes |
 |---|---|---|---|
-| [globe.gl](https://github.com/vasturiano/globe.gl) 2.46.2 (includes [three.js](https://threejs.org)) | `wallpaper/lib/globe.gl.min.js` | MIT | © Vasco Asturiano; three.js © three.js authors |
+| [globe.gl](https://github.com/vasturiano/globe.gl) 2.46.2 (bundles [three.js](https://threejs.org), [h3-js](https://github.com/uber/h3-js) and the helvetiker typeface) | `wallpaper/lib/globe.gl.min.js` | MIT (three.js MIT, h3-js Apache-2.0, typeface: MAGENTA Ltd. permissive licence) | © Vasco Asturiano; full texts in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) |
 | [satellite.js](https://github.com/shashwatak/satellite-js) 5.0.0 | `wallpaper/lib/satellite.min.js` | MIT | © Shashwat Kandadai and UCSC |
 | Night Earth — NASA **Black Marble** 2012 | `wallpaper/lib/earth-night.jpg` | Public domain | NASA Earth Observatory / NOAA NGDC, via [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:The_earth_at_night.jpg); resized to 8192×4096 |
 | Day Earth — NASA **Blue Marble** | `wallpaper/lib/earth-day.jpg` | Public domain | NASA Visible Earth, via the [three-globe](https://github.com/vasturiano/three-globe) examples; dimmed slightly |
@@ -25,7 +25,7 @@ The project's own code is MIT-licensed (see `LICENSE`). Everything below is thir
 | Internet outages | [IODA](https://ioda.inetintel.cc.gatech.edu), Georgia Tech | Free research data |
 | Security news | The Hacker News, BleepingComputer, The Record, SecurityWeek RSS via [rss2json](https://rss2json.com); backup: [Hacker News Search](https://hn.algolia.com/api) | Headlines link to the original articles |
 | Weather | [Open-Meteo](https://open-meteo.com) | Free for non-commercial use, data CC BY 4.0 — credited in the weather tooltip |
-| Born today | [Wikimedia / Wikipedia APIs](https://api.wikimedia.org) | Text CC BY-SA 4.0 |
+| Born today | [Wikimedia / Wikipedia APIs](https://api.wikimedia.org) | Text CC BY-SA 4.0 (credited in the panel, links to the article); portraits are Wikipedia's page thumbnails, each under its own licence |
 | Satellites | [CelesTrak](https://celestrak.org), [TLE API](https://tle.ivanstanojevic.me) | Public orbital elements |
 | Service status | Public Statuspage APIs of GitHub, Cloudflare, Zoom, Discord, OpenAI, Claude, Reddit, Dropbox; Slack and Google Cloud status feeds | Public status information |
 | PC metrics (Windows) | [Lively Wallpaper](https://github.com/rocksdanister/lively) system-information API | — |

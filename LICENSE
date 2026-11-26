@@ -22,5 +22,5 @@ SOFTWARE.
 
 ---------------------------------------------------------------------------
 This licence covers the project's own code. Bundled third-party libraries, data
-and images keep their own licences — see CREDITS.md. In particular the undersea
+and images keep their own licences — see CREDITS.md and THIRD_PARTY_LICENSES.md. In particular the undersea
 cable data (wallpaper/lib/cables.js) is CC BY-NC-SA 3.0: NON-COMMERCIAL use only.

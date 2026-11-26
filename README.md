@@ -34,7 +34,7 @@ Everything runs from free public APIs: no accounts, no keys, no servers. If you'
    Or build it yourself (see below).
 2. Put it somewhere permanent, e.g. `Documents/Wallpaper/`.
 
-**macOS:** install [Plash](https://sindresorhus.com/plash) (free, App Store) → menu bar icon → **Add Website…** → choose the local file. Turn on **Browsing Mode** to click and play radio. Turn off "reload interval" and "mute audio".
+**macOS:** install [Plash](https://sindresorhus.com/plash) (free, Mac App Store; needs a recent macOS, so update first if the App Store says it isn't compatible) → menu bar icon → **Add Website…** → choose the local file. Turn on **Browsing Mode** to click and play radio. Make sure "reload interval" is off and audio isn't muted.
 
 **Windows:** install [Lively Wallpaper](https://www.rocksdanister.com/lively/) (free, Microsoft Store). Add **`deskmate-lively.zip`** (not the `.html`). The zip turns on Lively's system information, which feeds the PC metrics panel. In Lively's settings, turn on mouse input and wallpaper audio.
 
@@ -61,7 +61,7 @@ window.DESKMATE_CONFIG = {
 };
 ```
 
-**Keys:**
+**Keys** (when the wallpaper has keyboard focus, e.g. in a browser or Plash's Browsing Mode. On Lively, use the buttons):
 
 | Key | Action |
 |---|---|
@@ -75,16 +75,16 @@ window.DESKMATE_CONFIG = {
 
 ## Build from source
 
-You need Python 3 (with Pillow only for the optional asset scripts).
+You only need Python 3. No extra packages.
 
 ```bash
 python3 scripts/build_wallpaper.py      # → dist/globe-radio-wallpaper.html + dist/deskmate-lively.zip
 python3 scripts/fetch_cables.py         # optional: refresh the undersea cable map
 ```
 
-The build inlines every texture, font and script into one file. Chrome and WebView block WebGL textures loaded from `file://`, so everything has to be in the file itself.
+The build puts every texture, script and the flag font into one file, because Chrome and WebView block WebGL textures loaded from `file://`. The other fonts load from Google Fonts, with system fonts as a fallback when offline.
 
-**Tests** (Playwright, all network APIs mocked):
+**Tests** (Playwright; radio, outages, news, weather and Wikipedia are mocked):
 
 ```bash
 pip install playwright && playwright install chromium
@@ -95,9 +95,16 @@ python3 scripts/build_wallpaper.py && python3 tests/test_wallpaper.py
 
 - **Free APIs have rate limits.** If a source is busy, the wallpaper keeps the last data and retries.
 - **Satellites:** the full Starlink fleet comes from CelesTrak when it's reachable. Otherwise a few hundred come from a backup source.
-- **Lively's system-info fields** are based on its documentation. The PC panel hides itself everywhere else.
+- **PC metrics** use Lively's documented system-info API, but haven't been tested on a real Windows PC yet. The panel hides itself everywhere else.
 - **Radio stations come and go.** If one is offline, press <kbd>R</kbd>.
+
+## Privacy
+
+- **No tracking**, no analytics, no accounts.
+- Your settings (city, names, dates) are stored **only on your computer**, in the wallpaper's local storage.
+- The wallpaper talks **directly** to the public services listed in [CREDITS.md](CREDITS.md) (radio, weather, news, outages, satellites, status pages). Like any website visit, they see your IP address. The city you search is sent to Open-Meteo's geocoding service to find it.
+- Radio streams and station logos come straight from each station's own server.
 
 ## Credits & licence
 
-The code is [MIT](LICENSE). Libraries, NASA imagery, flags, country data and the **TeleGeography cable data** keep their own licences, listed in [CREDITS.md](CREDITS.md). The cable data is **CC BY-NC-SA 3.0, non-commercial only**.
+The code is [MIT](LICENSE). Libraries, NASA imagery, flags, country data and the **TeleGeography cable data** keep their own licences: see [CREDITS.md](CREDITS.md) and [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md). The cable data is **CC BY-NC-SA 3.0, non-commercial only**, so this project as a whole may not be used commercially unless the cable layer is removed or replaced. News headlines, Wikipedia text and radio streams belong to their owners. The wallpaper only shows and links to them.

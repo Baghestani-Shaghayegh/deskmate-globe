@@ -1371,7 +1371,8 @@ window.DESKMATE_CONFIG = {
         <div class="byears">${esc(lifeYears(b))}</div>${b.desc ? `<div class="bdesc" style="-webkit-line-clamp:3">${esc(b.desc)}</div>` : ''}</div></div>
       <div class="btext" id="btext"><p>${esc(b.extract)}</p></div>
       <div class="ractions"><button class="btn primary" id="bOpen"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>Read on Wikipedia</button>
-        <button class="btn" id="bCopy">Copy link</button></div>`;
+        <button class="btn" id="bCopy">Copy link</button></div>
+      <div class="rnote">Text from Wikipedia · CC BY-SA 4.0</div>`;
     fixPortraits($('bread'));
     $('born').classList.add('reading'); $('born').classList.remove('folded');
     $('bread').scrollTop = 0;
