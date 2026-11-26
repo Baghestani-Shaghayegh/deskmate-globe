@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Deskmate Globe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Chakra+Petch:wght@400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  /* Flag emoji for Windows (which has none). Twemoji Country Flags font: MIT code, art CC-BY 4.0 by Twitter/Twemoji. */
+  @font-face { font-family: "Twemoji Country Flags"; font-display: swap;
+    unicode-range: U+1F1E6-1F1FF, U+1F3F4, U+E0062-E0063, U+E0065, U+E0067, U+E006C, U+E006E, U+E0073-E0074, U+E0077, U+E007F;
+    src: url("lib/TwemojiCountryFlags.woff2") format("woff2"); }
+
+  /* Design: quiet, editorial, mostly monochrome. One calm accent (blue), pink only for "us",
+     green/amber/red only for status. No boxes — sections sit on space, divided by hairlines. */
+  :root {
+    --fg: #ececec;  --fg2: #b4b4b4;  --mid: #8a8a8a;  --low: #5a5a5a;  --line: rgba(255,255,255,.09);
+    --acc: #8ec5ff; --her: #ff8cc6;
+    --ok: #4ade80;  --warn: #fbbf24; --bad: #f87171; --info: #93c5fd;
+    --edge: 44px; --colw: clamp(280px, 19.5vw, 340px); --gap: 30px;
+    --sans: "Twemoji Country Flags", "Geist", "Inter", system-ui, -apple-system, sans-serif;
+    --mono: "Geist Mono", ui-monospace, "SF Mono", Consolas, Menlo, monospace;
+    /* legacy names some code still uses */
+    --accent: var(--acc); --accent2: var(--her); --red: var(--bad); --orange: #fb923c; --amber: var(--warn);
+    --green: var(--ok); --violet: #c4b5fd; --text: var(--fg); --muted: var(--mid); --dim: var(--low);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; color: var(--fg);
+    font-family: var(--sans); font-feature-settings: "ss01", "cv11"; -webkit-font-smoothing: antialiased; user-select: none; }
+  #globe { position: fixed; inset: 0; }
+  /* soft darkening at the left/right edges so text stays readable without boxes */
+  #shade { position: fixed; inset: 0; pointer-events: none;
+    background: linear-gradient(90deg, rgba(0,0,0,.72) 0, rgba(0,0,0,.35) 22%, transparent 34%, transparent 66%, rgba(0,0,0,.35) 78%, rgba(0,0,0,.72) 100%); }
+  .mono { font-family: var(--mono); }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  /* ---------- Sections ---------- */
+  .panel { overflow: hidden; }
+  .phead { display: flex; align-items: center; gap: 8px; padding: 12px 0 10px; border-top: 1px solid var(--line);
+    font-size: 12.5px; font-weight: 500; color: var(--fg); white-space: nowrap; letter-spacing: -.005em; }
+  .phead .meta { margin-left: auto; font: 400 11px var(--mono); color: var(--mid); }
+  .pbody { padding: 4px 0 6px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--mid); flex: none; }
+  .dot.red { background: var(--bad); } .dot.green { background: var(--ok); } .dot.gold { background: var(--warn); }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+
+  .col { position: fixed; top: var(--edge); bottom: var(--edge); width: var(--colw); display: flex; flex-direction: column; gap: var(--gap); }
+  #left { left: var(--edge); }
+  #right { right: var(--edge); }
+  .scroll { overflow-y: auto; scrollbar-width: none; }
+  .scroll::-webkit-scrollbar { width: 0 }
+
+  /* ---------- Clock ---------- */
+  #clock { flex: none; }
+  #time { font-size: 92px; font-weight: 300; letter-spacing: -.055em; line-height: .9; font-variant-numeric: tabular-nums; }
+  #time small { font-size: 18px; font-weight: 400; letter-spacing: 0; color: var(--mid); margin-left: 8px; }
+  #date { margin-top: 14px; font-size: 15px; color: var(--fg2); letter-spacing: -.005em; }
+  /* weather where he lives */
+  #wx { margin-top: 6px; display: flex; align-items: center; gap: 8px; min-height: 22px; white-space: nowrap; font-size: 15px; color: var(--fg2); }
+  #wx svg { width: 18px; height: 18px; flex: none; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  #wx b { font-weight: 500; color: var(--fg); }
+  #wx .d2 { color: var(--mid); }
+  #wx .rain { color: var(--acc); }
+  #her { margin-top: 22px; display: flex; align-items: baseline; gap: 10px; white-space: nowrap; font-size: 13px; color: var(--mid); }
+  #her .who { display: inline-flex; align-items: center; gap: 7px; color: var(--her); font-weight: 500; }
+  #her .who::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--her); }
+  #her b { font: 400 20px var(--sans); letter-spacing: -.02em; color: var(--fg); font-variant-numeric: tabular-nums; }
+  #her b small { font-size: 12px; color: var(--mid); margin-left: 3px; }
+  #localtime { margin-top: 6px; font: 400 11.5px var(--mono); color: var(--mid); min-height: 15px; }
+  #localtime:empty { display: none; }
+  #us { margin-top: 8px; display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--mid); white-space: nowrap; }
+  #us b { color: var(--fg); font-weight: 500; font-variant-numeric: tabular-nums; }
+  #us .sep { color: var(--low); }
+  #us.party b { color: var(--her); }
+  .heart { color: var(--her); display: inline-block; font-size: 11px; animation: beat 2.4s infinite; }
+  @keyframes beat { 0%,70%,100% { transform: scale(1) } 12% { transform: scale(1.25) } 24% { transform: scale(1) } 36% { transform: scale(1.18) } }
+
+  /* reserved spot above the globe for your desktop folders/icons: viewfinder corners */
+  #deskzone { --c: rgba(255,255,255,.32); --k: 16px;
+    position: fixed; top: var(--edge); left: 50%; transform: translateX(-50%); pointer-events: none;
+    width: min(620px, calc(100vw - 2 * var(--colw) - 5 * var(--edge))); height: 120px;
+    background:
+      linear-gradient(var(--c),var(--c)) top left / var(--k) 1px no-repeat,  linear-gradient(var(--c),var(--c)) top left / 1px var(--k) no-repeat,
+      linear-gradient(var(--c),var(--c)) top right / var(--k) 1px no-repeat, linear-gradient(var(--c),var(--c)) top right / 1px var(--k) no-repeat,
+      linear-gradient(var(--c),var(--c)) bottom left / var(--k) 1px no-repeat, linear-gradient(var(--c),var(--c)) bottom left / 1px var(--k) no-repeat,
+      linear-gradient(var(--c),var(--c)) bottom right / var(--k) 1px no-repeat, linear-gradient(var(--c),var(--c)) bottom right / 1px var(--k) no-repeat; }
+  #deskzone span { position: absolute; top: -20px; left: 0; font: 400 10.5px var(--mono); color: var(--low); }
+  #deskzone .ip { left: auto; right: 0; }
+  #deskzone.off { display: none; }
+
+  /* ---------- System (PC metrics) ---------- */
+  #sys { display: none; flex: none; }
+  #sys.on { display: block; }
+  .gauges { display: flex; flex-direction: column; gap: 10px; }
+  .meter { display: grid; grid-template-columns: 1fr auto; align-items: baseline; row-gap: 6px; font-size: 13px; color: var(--fg2); }
+  .meter b { font: 500 13px var(--mono); color: var(--fg); font-variant-numeric: tabular-nums; }
+  .meter .bar { grid-column: 1 / -1; height: 2px; background: rgba(255,255,255,.08); border-radius: 2px; overflow: hidden; }
+  .meter .bar i { display: block; height: 100%; width: 0; background: var(--fg); transition: width .8s ease, background .4s; }
+  .meter.warm .bar i { background: var(--warn); } .meter.hot .bar i { background: var(--bad); }
+  .netrow { display: flex; justify-content: space-between; align-items: baseline; margin-top: 16px; font: 500 13px var(--mono); font-variant-numeric: tabular-nums; }
+  .netrow .dn { color: var(--acc); } .netrow .up { color: var(--fg2); }
+  .netrow small { color: var(--mid); font: 400 12px var(--sans); margin-right: 6px; }
+  #spark { width: 100%; height: 40px; display: block; margin-top: 8px; }
+  .hw { margin-top: 10px; font: 400 11px/1.7 var(--mono); color: var(--low); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hw div { overflow: hidden; text-overflow: ellipsis; }
+
+  /* ---------- Outages ---------- */
+  #outages { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  #olist { flex: 1; min-height: 0; margin: 0 -8px; }
+  .orow { display: flex; align-items: center; gap: 12px; padding: 7px 8px; border-radius: 8px; cursor: pointer; transition: background .15s; }
+  .orow:hover { background: rgba(255,255,255,.05); }
+  .orow .fl { font-size: 17px; width: 20px; text-align: center; flex: none; }
+  .orow .nm { flex: 1; min-width: 0; }
+  .orow .nm div { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .orow .nm small { display: block; margin-top: 1px; font-size: 11.5px; color: var(--mid); }
+  .new { font-size: 11px; font-weight: 500; color: var(--bad); margin-left: 6px; }
+  .sev { display: flex; gap: 2px; flex: none; align-items: flex-end; }
+  .sev i { width: 3px; border-radius: 1px; background: rgba(255,255,255,.12); }
+  .sev i:nth-child(1) { height: 6px; } .sev i:nth-child(2) { height: 9px; } .sev i:nth-child(3) { height: 12px; }
+  .sev.l1 i:nth-child(-n+1) { background: var(--warn); }
+  .sev.l2 i:nth-child(-n+2) { background: var(--orange); }
+  .sev.l3 i { background: var(--bad); }
+  .empty { color: var(--mid); font-size: 13px; padding: 8px 0; }
+
+  /* ---------- Threat intel ---------- */
+  #intel { flex: 0 1 auto; min-height: 0; max-height: min(440px, 48vh); display: flex; flex-direction: column; }
+  #nlist { flex: 1; min-height: 0; margin: 0 -8px; overscroll-behavior: contain;
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
+            mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent); }
+  #nlist.at-end { -webkit-mask-image: none; mask-image: none; }
+  .nrow { display: block; padding: 9px 8px; border-radius: 8px; cursor: pointer; transition: background .15s; }
+  .nrow:hover { background: rgba(255,255,255,.05); }
+  .nmeta { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--mid); white-space: nowrap; overflow: hidden; }
+  .nmeta .fresh { color: var(--fg); }
+  .tag { font-weight: 500; color: var(--c); }
+  .ntitle { margin-top: 3px; font-size: 13.5px; line-height: 1.4; color: var(--fg);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* ---------- Player ---------- */
+  #player { position: fixed; left: 50%; bottom: var(--edge); transform: translateX(-50%);
+    width: min(620px, calc(100vw - 2 * var(--colw) - 4 * var(--edge))); min-width: 440px;
+    padding: 10px 12px 10px 10px; display: flex; align-items: center; gap: 14px; border-radius: 18px; overflow: visible;
+    background: rgba(18,18,20,.62); border: 1px solid rgba(255,255,255,.08);
+    backdrop-filter: blur(24px) saturate(140%); -webkit-backdrop-filter: blur(24px) saturate(140%); }
+  #fav { width: 46px; height: 46px; border-radius: 10px; background: rgba(255,255,255,.06) center/cover no-repeat;
+    flex: none; display: grid; place-items: center; font-size: 22px; }
+  #info { flex: 1; min-width: 0; }
+  #sname { font-size: 14.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.005em; }
+  #smeta { margin-top: 3px; font-size: 12px; color: var(--mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .controls { display: flex; align-items: center; gap: 2px; }
+  button { background: transparent; color: var(--mid); border: 0; border-radius: 9px;
+    width: 34px; height: 34px; display: grid; place-items: center; cursor: pointer; transition: color .15s, background .15s; }
+  button:hover { color: var(--fg); background: rgba(255,255,255,.07); }
+  button svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  #cableBtn.on, #satBtn.on { color: var(--fg); }
+  #playBtn { width: 40px; height: 40px; margin: 0 4px 0 6px; border-radius: 50%; color: #000; background: #f2f2f2; }
+  #playBtn:hover { background: #fff; color: #000; }
+  #playBtn svg { width: 16px; height: 16px; fill: currentColor; stroke: none; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 72px; height: 2px; border-radius: 2px; background: rgba(255,255,255,.2); outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%; background: #f2f2f2; cursor: pointer; }
+  input[type=range]::-moz-range-thumb { width: 11px; height: 11px; border: 0; border-radius: 50%; background: #f2f2f2; }
+  .eq { display: inline-flex; gap: 2px; height: 9px; align-items: flex-end; margin-right: 7px; vertical-align: -1px; }
+  .eq i { width: 2px; background: var(--acc); animation: eq .9s infinite ease-in-out; }
+  .eq i:nth-child(2) { animation-delay: .2s } .eq i:nth-child(3) { animation-delay: .4s }
+  @keyframes eq { 0%,100% { height: 2px } 50% { height: 9px } }
+  .paused .eq { display: none; }
+
+  /* search popover (button or "/" key) */
+  #search { position: absolute; bottom: calc(100% + 10px); left: 0; right: 0; padding: 8px; display: none; border-radius: 16px;
+    background: rgba(18,18,20,.92); border: 1px solid rgba(255,255,255,.08); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+  #search.open { display: block; }
+  #search input { width: 100%; background: transparent; border: 0; border-bottom: 1px solid var(--line); color: var(--fg);
+    padding: 10px 10px 12px; font: inherit; font-size: 15px; outline: none; }
+  #search input::placeholder { color: var(--low); }
+  #results { max-height: 280px; margin-top: 4px; }
+  #results div { padding: 8px 10px; border-radius: 8px; font-size: 13.5px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #results div:hover { background: rgba(255,255,255,.07); }
+  #results small { color: var(--mid); margin-left: 4px; }
+
+  #toast { position: fixed; bottom: calc(var(--edge) + 86px); left: 50%; transform: translate(-50%, 6px); padding: 8px 14px; border-radius: 999px;
+    background: rgba(18,18,20,.9); border: 1px solid rgba(255,255,255,.08); font-size: 12.5px; color: var(--fg);
+    opacity: 0; transition: .25s; pointer-events: none; overflow: visible; white-space: nowrap; }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* fold arrow on each section header */
+  .fold { width: 20px; height: 20px; margin: -4px -4px -4px 0; border-radius: 6px; color: var(--low); flex: none; }
+  .fold:hover { color: var(--fg); background: transparent; }
+  .fold svg { width: 14px; height: 14px; transition: transform .25s; }
+  .panel.folded .fold svg { transform: rotate(-90deg); }
+  .panel.folded > :not(.phead) { display: none !important; }
+  .panel.folded { flex: none !important; }
+
+  /* in-wallpaper article view (Threat intel) */
+  #reader { flex: 1; min-height: 0; padding: 2px 0 8px; display: none; }
+  #intel.reading #reader { display: block; }
+  #intel.reading #nlist { display: none; }
+  .rtop { display: flex; align-items: center; gap: 8px; margin: 0 0 10px -8px; }
+  .back { width: auto; height: 28px; padding: 0 10px 0 4px; gap: 2px; display: inline-flex; align-items: center; font-size: 12.5px; color: var(--mid); }
+  .back svg { width: 16px; height: 16px; }
+  .rtitle { font-size: 19px; font-weight: 500; line-height: 1.3; letter-spacing: -.015em; margin: 8px 0 10px; }
+  .rsum { font-size: 13.5px; line-height: 1.6; color: var(--fg2); }
+  .rnote { margin-top: 10px; font: 400 11px var(--mono); color: var(--low); }
+  .ractions { display: flex; gap: 8px; margin-top: 16px; }
+  .btn { width: auto; height: 32px; padding: 0 14px; font-size: 12.5px; font-weight: 500; color: var(--fg); border-radius: 999px;
+    background: rgba(255,255,255,.08); display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; }
+  .btn:hover { background: rgba(255,255,255,.14); }
+  .btn.primary { background: #f2f2f2; color: #000; }
+  .btn.primary:hover { background: #fff; color: #000; }
+  .btn svg { width: 13px; height: 13px; }
+
+  /* Born today (Wikipedia) */
+  #born { flex: none; max-height: min(460px, 46vh); display: flex; flex-direction: column; }
+  .bcard { display: flex; gap: 14px; align-items: center; padding: 6px 8px 8px; margin: 0 -8px; border-radius: 10px; cursor: pointer; transition: background .15s; }
+  .bcard:hover { background: rgba(255,255,255,.05); }
+  .portrait { width: 56px; height: 56px; border-radius: 10px; flex: none; object-fit: cover; object-position: top;
+    filter: grayscale(1) contrast(1.05); background: rgba(255,255,255,.06);
+    display: grid; place-items: center; font: 400 22px var(--sans); color: var(--fg2); }
+  .bname { font-size: 15px; font-weight: 500; line-height: 1.25; letter-spacing: -.01em; }
+  .byears { margin-top: 2px; font: 400 11.5px var(--mono); color: var(--mid); }
+  .bdesc { margin-top: 2px; font-size: 12.5px; color: var(--mid); line-height: 1.4;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .bhint { display: none; }
+  #bread { flex: 1; min-height: 0; padding: 2px 0 8px; display: none; }
+  #born.reading #bread { display: block; }
+  #born.reading .bcard { display: none; }
+  .bhead { display: flex; gap: 14px; align-items: center; margin-bottom: 12px; }
+  .bhead .portrait { width: 72px; height: 72px; }
+  .btext p { font-size: 13.5px; line-height: 1.62; color: var(--fg2); margin-bottom: 10px; }
+
+  /* Services status */
+  #svc { flex: none; }
+  .svcgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; padding: 2px 0 4px; }
+  .svc { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .svc i { width: 6px; height: 6px; border-radius: 50%; flex: none; background: var(--ok); }
+  .svc.minor i { background: var(--warn); }
+  .svc.major i { background: var(--bad); animation: pulse 2s infinite; }
+  .svc.maint i { background: var(--info); }
+  .svc.unknown i { background: var(--low); }
+  .svc.minor, .svc.major { color: var(--fg); }
+  .svcissue { padding: 8px 0 2px; font-size: 12px; line-height: 1.5; color: var(--mid); }
+  .svcissue:empty { display: none; }
+  .svcissue b { color: var(--fg); font-weight: 500; }
+
+  .tooltip { font-family: var(--sans); background: rgba(16,16,18,.94); border: 1px solid rgba(255,255,255,.1);
+    padding: 8px 12px; border-radius: 10px; font-size: 13px; line-height: 1.45; color: var(--fg); }
+  .tooltip small { color: var(--mid); font-size: 11.5px; }
+  .tooltip.red { border-color: rgba(248,113,113,.35); }
+
+  /* ================= Futuristic HUD theme (overrides the base styles above) =================
+     Ice blue on black, framed + numbered sections, wide display font, targeting ring around the globe. */
+:root { --acc:#9fe4ff; --fg:#e6f6ff; --fg2:#a9c4d4; --mid:#6f8796; --low:#3f5260; --line: rgba(159,228,255,.16);
+  --sans: "Twemoji Country Flags","Chakra Petch",sans-serif; --mono:"JetBrains Mono",monospace; --her:#ff9ccf; }
+body { font-family: var(--sans); background:#00050a; }
+/* fine grid + scanlines over the whole screen */
+#shade { background:
+  linear-gradient(90deg, rgba(0,6,12,.8) 0, rgba(0,6,12,.35) 22%, transparent 34%, transparent 66%, rgba(0,6,12,.35) 78%, rgba(0,6,12,.8) 100%),
+  repeating-linear-gradient(0deg, rgba(159,228,255,.025) 0 1px, transparent 1px 3px),
+  linear-gradient(rgba(159,228,255,.035) 1px, transparent 1px) 0 0/48px 48px,
+  linear-gradient(90deg, rgba(159,228,255,.035) 1px, transparent 1px) 0 0/48px 48px; }
+/* framed sections with corner brackets + numbering */
+body { counter-reset: sec; } .col { gap: 18px; }
+.panel { --c: rgba(159,228,255,.55); --k: 10px; position: relative; padding: 0 14px 10px; background:
+  linear-gradient(var(--c),var(--c)) top left/var(--k) 1px no-repeat, linear-gradient(var(--c),var(--c)) top left/1px var(--k) no-repeat,
+  linear-gradient(var(--c),var(--c)) top right/var(--k) 1px no-repeat, linear-gradient(var(--c),var(--c)) top right/1px var(--k) no-repeat,
+  linear-gradient(var(--c),var(--c)) bottom left/var(--k) 1px no-repeat, linear-gradient(var(--c),var(--c)) bottom left/1px var(--k) no-repeat,
+  linear-gradient(var(--c),var(--c)) bottom right/var(--k) 1px no-repeat, linear-gradient(var(--c),var(--c)) bottom right/1px var(--k) no-repeat,
+  linear-gradient(180deg, rgba(10,30,45,.38), rgba(5,15,25,.25)); border: 1px solid rgba(159,228,255,.07); }
+#player, #search { --c: rgba(159,228,255,.7); --k: 12px; border-radius: 0; border: 1px solid rgba(159,228,255,.18); background:
+  linear-gradient(var(--c),var(--c)) top left/var(--k) 1px no-repeat, linear-gradient(var(--c),var(--c)) top left/1px var(--k) no-repeat,
+  linear-gradient(var(--c),var(--c)) top right/var(--k) 1px no-repeat, linear-gradient(var(--c),var(--c)) top right/1px var(--k) no-repeat,
+  linear-gradient(var(--c),var(--c)) bottom left/var(--k) 1px no-repeat, linear-gradient(var(--c),var(--c)) bottom left/1px var(--k) no-repeat,
+  linear-gradient(var(--c),var(--c)) bottom right/var(--k) 1px no-repeat, linear-gradient(var(--c),var(--c)) bottom right/1px var(--k) no-repeat,
+  linear-gradient(180deg, rgba(8,26,40,.82), rgba(4,14,24,.86)); }
+#search input { font-family: var(--mono); letter-spacing: .06em; }
+#toast { border-radius: 0; border-color: rgba(159,228,255,.3); font-family: var(--mono); letter-spacing: .08em; text-transform: uppercase; font-size: 11px; }
+.btn { border-radius: 0; font-family: var(--mono); letter-spacing: .08em; text-transform: uppercase; font-size: 11px; }
+.btn.primary { background: var(--acc); color: #00121c; }
+.tooltip { border-radius: 0; border-color: rgba(159,228,255,.3); background: rgba(4,16,26,.94); }
+.phead { border-top: 0; border-bottom: 1px solid var(--line); padding: 10px 0 8px; margin-bottom: 6px;
+  font: 600 11px var(--sans); letter-spacing: .22em; text-transform: uppercase; color: var(--acc); }
+.phead::before { counter-increment: sec; content: counter(sec, decimal-leading-zero) " //"; font: 400 10px var(--mono); color: var(--mid); letter-spacing: .05em; margin-right: 2px; }
+.phead .meta { font: 400 10px var(--mono); color: var(--mid); letter-spacing: .08em; text-transform: uppercase; }
+.dot { border-radius: 0; width: 5px; height: 5px; transform: rotate(45deg); }
+/* clock: wide display face */
+#time { font: 400 64px "Michroma", sans-serif; letter-spacing: .02em; color: var(--fg); text-shadow: 0 0 24px rgba(159,228,255,.25); }
+#time small { font: 500 14px var(--mono); color: var(--acc); letter-spacing: .2em; }
+#date { font: 500 12px var(--mono); letter-spacing: .28em; text-transform: uppercase; color: var(--fg2); margin-top: 18px; }
+#date::after { content: ""; display: block; height: 2px; margin-top: 10px; width: 100%;
+  background: linear-gradient(90deg, var(--acc) 0 78%, rgba(159,228,255,.15) 78%); }
+#wx, #her, #us, #localtime { font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; }
+#wx b, #her b { font-family: "Michroma", sans-serif; font-weight: 400; }
+#her .who { color: var(--her); }
+.orow .nm div, .ntitle, .bname, .svc { font-family: var(--sans); }
+.orow .nm small, .nmeta, .byears, .bdesc, .svcissue { font-family: var(--mono); font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; }
+.tag { letter-spacing: .12em; }
+.svc i { border-radius: 0; transform: rotate(45deg); width: 5px; height: 5px; }
+.meter b { color: var(--acc); }
+.meter .bar { height: 4px; background: repeating-linear-gradient(90deg, rgba(159,228,255,.15) 0 3px, transparent 3px 5px); }
+.meter .bar i { background: repeating-linear-gradient(90deg, var(--acc) 0 3px, transparent 3px 5px); }
+#playBtn { background: var(--acc); color: #00121c; border-radius: 0; clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%); }
+#sname { font: 600 14px var(--sans); letter-spacing: .08em; text-transform: uppercase; }
+#smeta { font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; font-size: 10.5px; }
+#deskzone { --c: rgba(159,228,255,.5); }
+#deskzone span { color: var(--acc); letter-spacing: .25em; text-transform: uppercase; font-size: 9.5px; }
+/* the HUD ring around the globe */
+#hudring { position: fixed; left: 50%; top: 50%; width: min(84vh, 62vw); height: min(84vh, 62vw); transform: translate(-50%, -50%); pointer-events: none; }
+#hudring .spin { transform-origin: 380px 380px; transform-box: view-box; animation: spin 60s linear infinite; }
+#hudring .sweep { transform-origin: 380px 380px; transform-box: view-box; animation: spin 8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#hudread { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--edge) + 74px); pointer-events: none; white-space: nowrap;
+  font: 400 10px "JetBrains Mono", monospace; color: rgba(159,228,255,.65); letter-spacing: .18em; }
+#hudread b { color: var(--acc); font-weight: 500; }
+@media (prefers-reduced-motion: reduce) { #hudring .spin, #hudring .sweep { animation: none; } }
+
+/* ---------- Tall layout: #reel (phone videos, 9:16) or any portrait screen ----------
+   Clock on top, big globe in the middle, live readout + radio at the bottom; side panels hidden. */
+html.tall { --edge: 5vw; }
+html.tall #right, html.tall #sys, html.tall #outages, html.tall #deskzone { display: none !important; }
+html.tall #left { width: auto; right: var(--edge); bottom: auto; }
+html.tall #time { font-size: min(64px, 11vw); }
+html.tall #date::after { width: 100%; }
+html.tall #hudring { width: 96vw; height: 96vw; }
+html.tall #player { width: calc(100vw - 2 * var(--edge)); min-width: 0; }
+html.tall #player .controls input[type=range] { display: none; }
+html.tall #hudread { bottom: calc(var(--edge) + 76px); font-size: min(10px, 2.2vw); letter-spacing: .12em; }
+</style>
+</head>
+<body>
+<div id="globe"></div>
+<div id="shade"></div>
+<svg id="hudring" viewBox="0 0 760 760" aria-hidden="true"></svg>
+<div id="hudread"></div>
+<div id="deskzone"><span>localhost</span><span class="ip">127.0.0.1</span></div>
+
+<!-- Left: clock · system · outages -->
+<div id="left" class="col">
+  <div id="clock">
+    <div id="time">--:--</div>
+    <div id="date"></div>
+    <div id="wx"></div>
+    <div id="her"></div>
+    <div id="localtime"></div>
+    <div id="us"></div>
+  </div>
+
+  <div id="sys" class="panel">
+    <div class="phead">System<span class="meta" id="sysMeta">live</span><button class="fold" title="Fold / unfold"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button></div>
+    <div class="pbody">
+      <div class="gauges">
+        <div class="meter" id="gCpu"><span>CPU</span><b>–</b><div class="bar"><i></i></div></div>
+        <div class="meter" id="gGpu"><span>GPU</span><b>–</b><div class="bar"><i></i></div></div>
+        <div class="meter" id="gRam"><span>Memory</span><b>–</b><div class="bar"><i></i></div></div>
+      </div>
+      <div class="netrow"><span class="dn"><small>Down</small><span id="netD">–</span></span><span class="up"><small>Up</small><span id="netU">–</span></span></div>
+      <canvas id="spark"></canvas>
+      <div class="hw"><div id="hw1"></div><div id="hw2"></div></div>
+    </div>
+  </div>
+
+  <div id="outages" class="panel">
+    <div class="phead"><span class="dot red"></span>Internet outages<span class="meta" id="ometa">…</span><button class="fold" title="Fold / unfold"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button></div>
+    <div id="olist" class="scroll"><div class="empty">Scanning the world's internet…</div></div>
+  </div>
+</div>
+
+<!-- Right: threat intel -->
+<div id="right" class="col">
+  <div id="intel" class="panel">
+    <div class="phead">Threat intel<span class="meta" id="nmeta">…</span><button class="fold" title="Fold / unfold"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button></div>
+    <div id="nlist" class="scroll"><div class="empty">Loading security headlines…</div></div>
+    <div id="reader" class="scroll"></div>
+  </div>
+
+  <div id="born" class="panel">
+    <div class="phead">Born today<span class="meta" id="bmeta"></span><button class="fold" title="Fold / unfold"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button></div>
+    <div id="bcard" class="bcard"><div class="empty">Looking through history…</div></div>
+    <div id="bread" class="scroll"></div>
+  </div>
+
+  <div id="svc" class="panel">
+    <div class="phead"><span class="dot green" id="svcDot"></span>Services<span class="meta" id="svcMeta">…</span><button class="fold" title="Fold / unfold"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button></div>
+    <div id="svcGrid" class="svcgrid"></div>
+    <div id="svcIssue" class="svcissue"></div>
+  </div>
+</div>
+
+<!-- Bottom: radio -->
+<div id="player" class="panel paused">
+  <div id="search" class="panel">
+    <input id="q" placeholder="Search stations or countries" autocomplete="off" />
+    <div id="results" class="scroll"></div>
+  </div>
+  <div id="fav">📻</div>
+  <div id="info">
+    <div id="sname">Tune in anywhere</div>
+    <div id="smeta"><span class="eq"><i></i><i></i><i></i></span><span id="metaText">Click any dot on the globe</span></div>
+  </div>
+  <div class="controls">
+    <button id="searchBtn" title="Search (/)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    <button id="satBtn" title="Satellites: ISS + Starlink (S)"><svg viewBox="0 0 24 24"><path d="M13 7 9 3 5 7l4 4M17 11l4 4-4 4-4-4M8 12l4 4M16 8l-1.5 1.5"/><circle cx="12" cy="12" r="2"/><path d="M3 21c0-3 2-5 5-5"/></svg></button>
+    <button id="cableBtn" title="Undersea internet cables (C)"><svg viewBox="0 0 24 24"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="19" r="2"/><path d="M7 6h10M6 8l5 9M18 8l-5 9"/></svg></button>
+    <button id="randBtn" title="Random station (R)"><svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></button>
+    <button id="playBtn" title="Play / pause (Space)"><svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z"/></svg></button>
+    <input id="vol" type="range" min="0" max="1" step="0.01" value="0.7" title="Volume" />
+  </div>
+</div>
+
+<div id="toast" class="panel"></div>
+<audio id="audio" preload="none"></audio>
+
+<script src="lib/globe.gl.min.js"></script>
+<script src="lib/countries.js"></script>
+<script src="lib/cables.js"></script>
+<script src="lib/satellite.min.js"></script>
+<script src="config.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  // ---------- Clock ----------
+  // ---------- Settings (config.js) ----------
+  // #demo = fake PC stats + privacy, #reel = vertical layout for phone videos + privacy.
+  const FLAGS = (location.hash + location.search).toLowerCase();
+  const DEMO = /demo/.test(FLAGS), REEL = /reel/.test(FLAGS), PRIVATE = DEMO || REEL;
+  const CFG = window.DESKMATE_CONFIG || {};
+  const H = CFG.home || {};
+  const HOME = { tz: !H.timezone || H.timezone === 'auto' ? Intl.DateTimeFormat().resolvedOptions().timeZone : H.timezone,
+    lat: typeof H.lat === 'number' ? H.lat : null, lng: typeof H.lng === 'number' ? H.lng : null, units: H.units === 'C' ? 'C' : 'F' };
+  const P = !PRIVATE && CFG.partner && CFG.partner.timezone ? CFG.partner : null;
+  const HER = P ? { tz: P.timezone, name: P.name || 'Partner', lat: typeof P.lat === 'number' ? P.lat : null, lng: typeof P.lng === 'number' ? P.lng : null } : null;
+  if (REEL) document.documentElement.classList.add('reel');
+  function zparts(tz, d = new Date()) {
+    const o = {};
+    new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
+      .formatToParts(d).forEach(p => o[p.type] = +p.value || p.value);
+    return o;
+  }
+  const hm = (tz, d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: tz }).split(' ');
+  function tick() {
+    const d = new Date();
+    const [t, ap] = hm(HOME.tz, d);
+    $('time').innerHTML = esc(t) + (ap ? `<small>${esc(ap)}</small>` : '');
+    $('date').innerHTML = esc(d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', timeZone: HOME.tz }));
+    // partner's side (config.partner)
+    if (!HER) { $('her').style.display = 'none'; return; }
+    const a = zparts(HOME.tz, d), b = zparts(HER.tz, d);
+    const diff = Math.round(((dayNum(b.year, b.month, b.day) - dayNum(a.year, a.month, a.day)) * 1440 + (b.hour * 60 + b.minute) - (a.hour * 60 + a.minute)) / 60);
+    const dayShift = dayNum(b.year, b.month, b.day) - dayNum(a.year, a.month, a.day);
+    const [ht, hap] = hm(HER.tz, d);
+    const night = b.hour >= 22 || b.hour < 7;
+    $('her').innerHTML = `<span class="who">${esc(HER.name)} time</span><b>${esc(ht)}${hap ? `<small>${esc(hap)}</small>` : ''}</b>` +
+      `<span>${esc(d.toLocaleDateString([], { weekday: 'short', timeZone: HER.tz }))}${dayShift > 0 ? ' (tomorrow)' : dayShift < 0 ? ' (yesterday)' : ''} · ${diff >= 0 ? '+' : ''}${diff}h · ${night ? 'night' : b.hour < 18 ? 'day' : 'evening'}</span>`;
+  }
+  setTimeout(() => { tick(); setInterval(tick, 1000); });  // after helpers below are defined
+
+  // ---------- Weather where he lives (Open-Meteo: free, no key, CORS *) ----------
+  const WX = {
+    sun: '<circle cx="12" cy="12" r="4.2" stroke="currentColor"/><path stroke="currentColor" d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
+    moon: '<path stroke="currentColor" d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/>',
+    cloud: '<path stroke="currentColor" d="M7 18h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 18z"/>',
+    rain: '<path stroke="currentColor" d="M7 15h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 15z"/><path stroke="currentColor" d="M9 18l-1 3M13 18l-1 3M17 18l-1 3"/>',
+    storm: '<path stroke="currentColor" d="M7 15h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 15z"/><path stroke="currentColor" d="M12.5 15l-2 3.5h3l-2 3.5"/>',
+    fog: '<path stroke="currentColor" d="M4 9h16M6 13h12M4 17h16"/>',
+    snow: '<path stroke="currentColor" d="M7 15h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 15z"/><path stroke="currentColor" d="M9 19h.01M13 20h.01M17 19h.01"/>'
+  };
+  const partly = (day) => `<g transform="translate(-3 -3) scale(.62)">${day ? WX.sun : WX.moon}</g><g transform="translate(3 3) scale(.82)">${WX.cloud}</g>`;
+  function wxLook(code, day) {
+    if (code === 0) return [day ? WX.sun : WX.moon, 'Clear'];
+    if (code === 1) return [partly(day), 'Mostly clear'];
+    if (code === 2) return [partly(day), 'Partly cloudy'];
+    if (code === 3) return [WX.cloud, 'Overcast'];
+    if (code === 45 || code === 48) return [WX.fog, 'Fog'];
+    if (code >= 51 && code <= 57) return [WX.rain, 'Drizzle'];
+    if (code >= 61 && code <= 67) return [WX.rain, code >= 65 ? 'Heavy rain' : 'Rain'];
+    if (code >= 80 && code <= 82) return [WX.rain, 'Showers'];
+    if ((code >= 71 && code <= 77) || code === 85 || code === 86) return [WX.snow, 'Snow'];
+    if (code >= 95) return [WX.storm, 'Thunderstorm'];
+    return [WX.cloud, 'Cloudy'];
+  }
+  async function loadWeather() {
+    if (HOME.lat == null) { $('wx').style.display = 'none'; return; }   // no location in config.js → no weather
+    let w = cacheGet('wx', 15 * 60e3);
+    if (!w) {
+      try {
+        const q = new URLSearchParams({ latitude: HOME.lat, longitude: HOME.lng, timezone: HOME.tz, forecast_days: 1,
+          current: 'temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day,wind_speed_10m',
+          daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+          temperature_unit: HOME.units === 'C' ? 'celsius' : 'fahrenheit', wind_speed_unit: HOME.units === 'C' ? 'kmh' : 'mph' });
+        const r = await fetch('https://api.open-meteo.com/v1/forecast?' + q);
+        if (!r.ok) throw new Error(r.status);
+        w = await r.json();
+        cacheSet('wx', w);
+      } catch (e) { w = cacheGet('wx', 6 * 3600e3); }   // offline: last reading for a few hours
+    }
+    if (!w || !w.current) { $('wx').innerHTML = ''; return; }
+    const c = w.current, d = w.daily || {};
+    const [icon, label] = wxLook(c.weather_code, c.is_day);
+    const hi = d.temperature_2m_max && d.temperature_2m_max[0], lo = d.temperature_2m_min && d.temperature_2m_min[0];
+    const rain = d.precipitation_probability_max && d.precipitation_probability_max[0];
+    $('wx').innerHTML = `<svg viewBox="0 0 24 24">${icon}</svg><b>${Math.round(c.temperature_2m)}°</b><span>${esc(label)}</span>` +
+      `<span class="d2">${hi != null ? `H${Math.round(hi)}° L${Math.round(lo)}°` : ''}${rain >= 20 ? ` · <span class="rain">rain ${rain}%</span>` : ''}</span>`;
+    $('wx').title = `Feels like ${Math.round(c.apparent_temperature)}°${HOME.units} · humidity ${c.relative_humidity_2m}% · wind ${Math.round(c.wind_speed_10m)} ${HOME.units === 'C' ? 'km/h' : 'mph'} · weather by Open-Meteo.com`;
+  }
+  loadWeather();
+  setInterval(loadWeather, 15 * 60e3);
+
+  // ---------- Globe ----------
+  // Night Earth: NASA Black Marble 2012 (public domain), resized to 8192×4096 — the largest texture every GPU accepts.
+  const IMG = 'lib/';
+  const world = Globe()($('globe'))
+    .globeImageUrl(IMG + 'earth-night.jpg')
+    .backgroundImageUrl(IMG + 'night-sky.png')
+    .showAtmosphere(true)
+    .atmosphereColor('#7fb4ff')
+    .atmosphereAltitude(0.16)
+    .pointLat('lat').pointLng('lng')
+    // two kinds of points: radio stations, and outage markers (d.out)
+    .pointAltitude(d => d === current ? 0.08 : d.us ? 0.02 : d.out ? 0.004 : 0.01)
+    .pointRadius(d => d === current ? 0.42 : d.us ? 0.45 : d.out ? 0.32 + d.lvl * 0.1 : 0.17)
+    .pointColor(d => d === current ? '#ffffff' : d.us ? (d.me === 'her' ? '#ff8cc6' : '#8ec5ff') : d.out ? SEVCOL[d.lvl] : 'rgba(142,197,255,0.72)')
+    .pointResolution(6)
+    .pointsTransitionDuration(300)
+    .pointLabel(d => d.us ? `<div class="tooltip"><b>${d.me === 'her' ? '♥ ' + esc(HER.name) : 'You'}</b></div>` : d.out
+      ? `<div class="tooltip red"><b>${flag(d.cc)} ${esc(d.name)}</b><br><small>${esc(LVL[d.lvl][0].toUpperCase() + LVL[d.lvl].slice(1))} outage · ${esc(d.signals.join(' · '))}</small></div>`
+      : `<div class="tooltip"><b>${esc(d.name)}</b><br><small>${esc(d.place)}</small></div>`)
+    .onPointClick(d => d.us || d.out ? flyTo(d) : play(d))
+    .ringsData([])
+    .ringColor(d => d.out ? t => `rgba(248,113,113,${(1 - t) * 0.8})` : t => `rgba(255,255,255,${(1 - t) * 0.8})`)
+    .ringMaxRadius(d => d.out ? 2 + d.lvl * 1.5 : 4)
+    .ringPropagationSpeed(d => d.out ? 1.2 : 2)
+    .ringRepeatPeriod(d => d.out ? 1600 - d.lvl * 250 : 900);
+
+  const SEVCOL = { 1: '#fbbf24', 2: '#fb923c', 3: '#f87171' };
+  const US_DOTS = HER && HER.lat != null && HOME.lat != null ? [{ ...HOME, me: 'home' }, { ...HER, me: 'her' }].map(x => ({ ...x, us: true })) : [];
+  function refreshPoints() { world.pointsData([...stations, ...outages.map(o => ({ ...o, out: true })), ...US_DOTS]); }
+  setTimeout(refreshPoints);  // show our two cities even before stations load
+
+  // ---------- Undersea internet cables (TeleGeography Submarine Cable Map, bundled in lib/cables.js) ----------
+  // Thin cyan lines with little "packets" flowing along them; planned cables are fainter.
+  // Hover → the whole cable lights up pink with name, length, year, countries and owners.
+  const CABLE_PATHS = (window.CABLES || []).flatMap(c => c.paths.map(pts => ({ c, pts })));
+  let hoverCable = null, cablesOn = true;
+  try { cablesOn = localStorage.getItem('cables') !== 'off'; } catch (e) {}
+  world.pathPoints('pts').pathPointLat(p => p[0]).pathPointLng(p => p[1])
+    .pathPointAlt(0.0015).pathResolution(3).pathTransitionDuration(0).pathStroke(null)
+    ;
+  world.lineHoverPrecision(1.2);   // cables are 1px thin — give them a few pixels of hover room
+  world
+    .pathColor(d => d.c === hoverCable ? ['rgba(255,255,255,1)', 'rgba(255,255,255,1)']
+      : d.c.planned ? 'rgba(142,197,255,0.08)' : ['rgba(142,197,255,0.22)', 'rgba(142,197,255,0.22)'])
+    .pathDashLength(d => d.c.planned ? 0.02 : 0.25).pathDashGap(d => d.c.planned ? 0.02 : 0.004)
+    .pathDashAnimateTime(d => d.c.planned ? 0 : 12000 + (d.pts.length % 7) * 2000)
+    .pathLabel(d => { const c = d.c;
+      return `<div class="tooltip"><b>${esc(c.n)}</b><br><small>${[c.len, c.planned ? `planned ${c.y || ''}` : c.y ? `since ${c.y}` : '',
+        c.lp ? `${c.lp} landings` : ''].filter(Boolean).map(esc).join(' · ')}</small>` +
+        (c.cc.length ? `<br><small>${esc(c.cc.slice(0, 6).join(', ') + (c.cc.length > 6 ? ` +${c.cc.length - 6}` : ''))}</small>` : '') +
+        (c.o ? `<br><small style="opacity:.7">${esc(c.o)}</small>` : '') +
+        `<br><small style="opacity:.55">© TeleGeography</small></div>`; })
+    .onPathHover(d => { const c = d ? d.c : null; if (c !== hoverCable) { hoverCable = c; world.pathColor(world.pathColor()); } });
+  function toggleCables(force) {
+    cablesOn = force ?? !cablesOn;
+    world.pathsData(cablesOn ? CABLE_PATHS : []);
+    $('cableBtn').classList.toggle('on', cablesOn);
+    try { localStorage.setItem('cables', cablesOn ? 'on' : 'off'); } catch (e) {}
+  }
+  $('cableBtn').onclick = () => { toggleCables(); toast(cablesOn ? `${(window.CABLES || []).length} undersea internet cables` : 'Cables hidden'); };
+  toggleCables(cablesOn);
+  window.__globe = world;   // handle for tests (find screen positions of map points)
+
+  // ---------- HUD: targeting ring around the globe + live counts readout ----------
+  (function drawRing() {
+    const c = 380, R = 352, P = a => [c + R * Math.cos(a * Math.PI / 180), c + R * Math.sin(a * Math.PI / 180)];
+    let ticks = '', labels = '';
+    for (let a = 0; a < 360; a += 2) {
+      const r1 = a % 30 === 0 ? 340 : a % 10 === 0 ? 345 : 348, [x1, y1] = P(a), rad = a * Math.PI / 180;
+      ticks += `<line x1="${x1}" y1="${y1}" x2="${c + r1 * Math.cos(rad)}" y2="${c + r1 * Math.sin(rad)}" stroke="rgba(159,228,255,${a % 30 === 0 ? .7 : .3})"/>`;
+      if (a % 30 === 0) labels += `<text x="${c + 362 * Math.cos(rad)}" y="${c + 362 * Math.sin(rad) + 3}" fill="rgba(159,228,255,.55)" font-family="JetBrains Mono, monospace" font-size="9" text-anchor="middle">${String(a).padStart(3, '0')}</text>`;
+    }
+    const [sx, sy] = P(-28.6);
+    $('hudring').innerHTML =
+      `<defs><linearGradient id="sw" x1="0" x2="1"><stop offset="0" stop-color="#9fe4ff" stop-opacity="0"/><stop offset="1" stop-color="#9fe4ff" stop-opacity=".35"/></linearGradient></defs>` +
+      `<circle cx="${c}" cy="${c}" r="${R}" fill="none" stroke="rgba(159,228,255,.18)"/>` +
+      `<circle cx="${c}" cy="${c}" r="372" fill="none" stroke="rgba(159,228,255,.10)" stroke-dasharray="2 6"/>` +
+      `<g class="spin">${ticks}</g><g>${labels}</g>` +
+      `<g class="sweep"><path d="M${c} ${c} L${c + R} ${c} A${R} ${R} 0 0 0 ${sx} ${sy} Z" fill="url(#sw)" opacity=".35"/><line x1="${c}" y1="${c}" x2="${c + R}" y2="${c}" stroke="rgba(159,228,255,.6)"/></g>` +
+      `<line x1="${c - 8}" y1="${c}" x2="${c + 8}" y2="${c}" stroke="rgba(159,228,255,.6)"/><line x1="${c}" y1="${c - 8}" x2="${c}" y2="${c + 8}" stroke="rgba(159,228,255,.6)"/>`;
+  })();
+  function hudRead() {
+    const n = x => x.toLocaleString();
+    $('hudread').innerHTML = [`STATIONS <b>${n(stations.length)}</b>`, cablesOn ? `CABLES <b>${n((window.CABLES || []).length)}</b>` : '',
+      satsOn ? `SATS <b>${n(starRecs.length + (issRec ? 1 : 0))}</b>` : '', `OUTAGES <b>${n(outages.length)}</b>`].filter(Boolean).join('  ·  ');
+  }
+  setTimeout(() => { hudRead(); setInterval(hudRead, 3000); });
+
+  // ---------- Satellites: ISS + Starlink, positions computed live from orbit data (satellite.js) ----------
+  // Orbit data (TLE): CelesTrak (whole Starlink fleet) if reachable, else tle.ivanstanojevic.me (ISS + 500 Starlink).
+  const TLE_API = 'https://tle.ivanstanojevic.me/api/tle/';
+  let satsOn = true, issRec = null, starRecs = [], issNow = null;
+  try { satsOn = localStorage.getItem('sats') !== 'off'; } catch (e) {}
+  const satGeo = (rec, date) => {
+    try {
+      const pv = satellite.propagate(rec, date);
+      if (!pv || !pv.position || typeof pv.position === 'boolean') return null;
+      const g = satellite.eciToGeodetic(pv.position, satellite.gstime(date));
+      const v = pv.velocity ? Math.hypot(pv.velocity.x, pv.velocity.y, pv.velocity.z) * 3600 : 0;
+      return { lat: satellite.degreesLat(g.latitude), lng: satellite.degreesLong(g.longitude), alt: g.height / 6371, km: g.height, kmh: v };
+    } catch (e) { return null; }
+  };
+  world.labelLat('lat').labelLng('lng').labelAltitude('alt').labelText(() => 'ISS').labelSize(1.1).labelDotRadius(0.5)
+    .labelColor(() => '#ffffff').labelResolution(3).labelDotOrientation(() => 'right')
+    .labelLabel(d => `<div class="tooltip"><b>International Space Station</b><br><small>${Math.round(d.km)} km up · ${Math.round(d.kmh).toLocaleString()} km/h · one orbit every ~92 min</small></div>`)
+    .onLabelClick(d => flyTo(d))
+    .particleLat('lat').particleLng('lng').particleAltitude('alt')
+    .particlesSize(set => set.track ? 0.7 : set.length > 2000 ? 0.6 : 0.8).particlesSizeAttenuation(true)
+    .particlesColor(set => set.track ? 'rgba(255,255,255,0.5)' : set.length > 2000 ? 'rgba(200,230,255,0.5)' : 'rgba(215,238,255,0.7)');
+  function tickSats() {
+    if (!satsOn) return;
+    const now = new Date();
+    issNow = issRec && satGeo(issRec, now);
+    const stars = starRecs.map(r => satGeo(r, now)).filter(Boolean);
+    const track = []; track.track = true;
+    if (issRec) for (let m = -40; m <= 50; m += 0.5) { const p = satGeo(issRec, new Date(+now + m * 60e3)); if (p) track.push(p); }
+    world.labelsData(issNow ? [issNow] : []);
+    world.particlesData([stars, track]);
+  }
+  const fetchT = (url, ms = 8000) => { const ac = new AbortController(); setTimeout(() => ac.abort(), ms); return fetch(url, { signal: ac.signal }); };
+  const pause = ms => new Promise(r => setTimeout(r, ms));
+  async function loadTLEs() {
+    let c = cacheGet('tle', 12 * 3600e3);
+    if (!c) {
+      const out = { iss: null, star: [] };
+      try { const j = await (await fetchT(TLE_API + '25544')).json(); if (j.line1) out.iss = [j.line1, j.line2]; } catch (e) {}
+      if (out.iss) { issRec = satellite.twoline2satrec(out.iss[0], out.iss[1]); tickSats(); }   // show the ISS right away
+      try {
+        const r = await fetchT('https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle');
+        const t = r.ok ? await r.text() : '';
+        const L = t.split(/\r?\n/).filter(l => /^[12] /.test(l));
+        for (let i = 0; i + 1 < L.length; i += 2) out.star.push([L[i], L[i + 1]]);
+      } catch (e) {}
+      if (out.star.length < 100) {
+        for (let page = 1; page <= 5; page++) {
+          try {
+            if (page > 1) await pause(1500);   // the backup source rate-limits quick bursts
+            const r = await fetchT(`${TLE_API}?search=STARLINK&page-size=100&page=${page}`);
+            if (!r.ok) break;
+            ((await r.json()).member || []).forEach(m => m.line1 && out.star.push([m.line1, m.line2]));
+          } catch (e) { break; }
+        }
+      }
+      if (out.iss || out.star.length) { c = out; cacheSet('tle', c); }
+      else c = cacheGet('tle', 14 * 86400e3);   // offline: two-week-old orbits still look right
+    }
+    if (!c) return setTimeout(loadTLEs, 15 * 60e3);
+    issRec = c.iss ? satellite.twoline2satrec(c.iss[0], c.iss[1]) : null;
+    starRecs = c.star.map(l => { try { return satellite.twoline2satrec(l[0], l[1]); } catch (e) { return null; } }).filter(Boolean);
+    tickSats();
+    setTimeout(loadTLEs, 12 * 3600e3);
+  }
+  function toggleSats(force) {
+    satsOn = force ?? !satsOn;
+    $('satBtn').classList.toggle('on', satsOn);
+    try { localStorage.setItem('sats', satsOn ? 'on' : 'off'); } catch (e) {}
+    if (satsOn) tickSats(); else { world.labelsData([]); world.particlesData([]); }
+  }
+  $('satBtn').onclick = () => { toggleSats(); toast(satsOn ? `ISS + ${starRecs.length.toLocaleString()} Starlink satellites` : 'Satellites hidden'); };
+  toggleSats(satsOn);
+  if (window.satellite) { loadTLEs(); setInterval(tickSats, 2000); }
+
+  // ---------- Services: are the big internet services up right now? (public status pages, CORS *) ----------
+  const SERVICES = [['GitHub', 'https://www.githubstatus.com'], ['Cloudflare', 'https://www.cloudflarestatus.com'],
+    ['Google Cloud', 'gcp'], ['Slack', 'slack'], ['Zoom', 'https://www.zoomstatus.com'], ['Discord', 'https://discordstatus.com'],
+    ['OpenAI', 'https://status.openai.com'], ['Claude', 'https://status.claude.com'], ['Reddit', 'https://www.redditstatus.com'],
+    ['Dropbox', 'https://status.dropbox.com']];
+  async function svcStatus([name, base]) {
+    try {
+      if (base === 'slack') {
+        const j = await (await fetch('https://slack-status.com/api/v2.0.0/current')).json(), inc = (j.active_incidents || [])[0];
+        return { name, lvl: j.status === 'ok' ? 'ok' : inc && /outage/i.test(inc.type || '') ? 'major' : 'minor', text: inc ? inc.title : '' };
+      }
+      if (base === 'gcp') {
+        const open = (await (await fetch('https://status.cloud.google.com/incidents.json')).json()).filter(i => !i.end);
+        const worst = open.find(i => /high/i.test(i.severity)) || open[0];
+        return { name, lvl: !worst ? 'ok' : /high/i.test(worst.severity) ? 'major' : 'minor', text: worst ? worst.external_desc : '' };
+      }
+      const j = await (await fetch(base + '/api/v2/status.json')).json(), ind = j.status && j.status.indicator;
+      const lvl = ind === 'none' ? 'ok' : ind === 'minor' ? 'minor' : ind === 'maintenance' ? 'maint' : /major|critical/.test(ind) ? 'major' : 'unknown';
+      let text = lvl === 'ok' ? '' : (j.status.description || '');
+      if (lvl === 'minor' || lvl === 'major') {
+        try { const u = await (await fetch(base + '/api/v2/incidents/unresolved.json')).json(); if (u.incidents && u.incidents[0]) text = u.incidents[0].name; } catch (e) {}
+      }
+      return { name, lvl, text };
+    } catch (e) { return { name, lvl: 'unknown', text: '' }; }
+  }
+  let svcs = [];
+  async function loadServices() {
+    let c = cacheGet('svc', 5 * 60e3);
+    if (!c) {
+      c = await Promise.all(SERVICES.map(svcStatus));
+      if (c.some(x => x.lvl !== 'unknown')) cacheSet('svc', c);
+      else c = cacheGet('svc', 6 * 3600e3) || c;   // offline: last known
+    }
+    svcs = c; renderServices();
+    setTimeout(loadServices, 5 * 60e3);
+  }
+  function renderServices() {
+    const bad = svcs.filter(x => x.lvl === 'minor' || x.lvl === 'major');
+    $('svcMeta').textContent = svcs.every(x => x.lvl === 'unknown') ? 'unreachable' : bad.length ? `${bad.length} with issues` : 'all normal';
+    $('svcDot').className = 'dot ' + (bad.some(x => x.lvl === 'major') ? 'red' : bad.length ? 'gold' : 'green');
+    $('svcGrid').innerHTML = svcs.map(x => `<div class="svc ${x.lvl}" title="${esc(x.name + ' — ' + (x.text || ({ ok: 'operational', maint: 'maintenance', unknown: 'no data' }[x.lvl] || 'issues')))}"><i></i>${esc(x.name)}</div>`).join('');
+    $('svcIssue').innerHTML = bad.slice(0, 2).map(x => `<div><b>${esc(x.name)}</b> · ${esc(x.text || 'degraded')}</div>`).join('');
+  }
+  loadServices();
+  // sharpest possible texture sampling (anisotropic filtering), once the Earth image has loaded
+  // no shiny "plastic" highlight in the middle of the globe — keeps the night side deep and crisp
+  { const m = world.globeMaterial(); m.shininess = 0; if (m.specular) m.specular.set('#000000'); }
+  (function sharpen(tries = 0) {
+    const map = world.globeMaterial().map;
+    if (!map || !map.image) return tries < 100 && setTimeout(() => sharpen(tries + 1), 200);
+    map.anisotropy = world.renderer().capabilities.getMaxAnisotropy();
+    map.needsUpdate = true;
+    setupDayNight(map);
+  })();
+
+  // ---------- Real day & night: sunlit side = NASA Blue Marble, dark side = city lights ----------
+  // The sun's position is computed from the clock (no data needed); a warm glow marks dawn/dusk.
+  function subsolar(date = new Date()) {          // lat/lng where the sun is straight overhead (NOAA-style approximation)
+    const rad = Math.PI / 180, d = (date - Date.UTC(2000, 0, 1, 12)) / 864e5;
+    const g = (357.529 + 0.98560028 * d) * rad, q = 280.459 + 0.98564736 * d;
+    const L = (q + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * rad, e = (23.439 - 0.00000036 * d) * rad;
+    const ra = Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L)) / rad, dec = Math.asin(Math.sin(e) * Math.sin(L)) / rad;
+    const gmst = (280.46061837 + 360.98564736629 * d) % 360;
+    let lng = (ra - gmst) % 360; if (lng > 180) lng -= 360; if (lng < -180) lng += 360;
+    return [dec, lng];
+  }
+  let sunUniform = null;
+  function updateSun() {
+    if (!sunUniform) return;
+    const [lat, lng] = subsolar(), c = world.getCoords(lat, lng, 0), n = Math.hypot(c.x, c.y, c.z);
+    sunUniform.value.set(c.x / n, c.y / n, c.z / n);
+  }
+  function setupDayNight(nightMap) {
+    const img = new Image();
+    img.onload = () => {
+      const day = new nightMap.constructor(img);           // a THREE.Texture, without needing THREE as a global
+      day.colorSpace = nightMap.colorSpace; day.anisotropy = nightMap.anisotropy; day.needsUpdate = true;
+      const V3 = world.camera().position.constructor, mat = world.globeMaterial();
+      mat.onBeforeCompile = sh => {
+        sh.uniforms.dayMap = { value: day };
+        sh.uniforms.sunDir = sunUniform = { value: new V3(1, 0, 0) };
+        sh.vertexShader = 'varying vec3 vWorldN;\n' + sh.vertexShader.replace('#include <beginnormal_vertex>',
+          '#include <beginnormal_vertex>\n  vWorldN = normalize(mat3(modelMatrix) * objectNormal);');
+        sh.fragmentShader = 'uniform sampler2D dayMap;\nuniform vec3 sunDir;\nvarying vec3 vWorldN;\n' + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+  float sunI = dot(normalize(vWorldN), sunDir);
+  diffuseColor.rgb = mix(diffuseColor.rgb, texture2D(dayMap, vMapUv).rgb, smoothstep(-0.12, 0.28, sunI));
+  diffuseColor.rgb += vec3(1.0, 0.55, 0.3) * 0.018 * max(0.0, 1.0 - abs(sunI + 0.02) * 9.0);`);
+        updateSun();
+      };
+      mat.needsUpdate = true;
+    };
+    img.src = IMG + 'earth-day.jpg';
+  }
+  setInterval(updateSun, 60e3);
+  // starting view: config.startView, else between home and partner, else home, else a nice default
+  const START = (!PRIVATE && CFG.startView) || (US_DOTS.length ? { lat: (HOME.lat + HER.lat) / 2, lng: HOME.lng }
+    : HOME.lat != null && !PRIVATE ? { lat: HOME.lat, lng: HOME.lng } : { lat: 20, lng: 10 });
+  world.pointOfView({ lat: START.lat, lng: START.lng, altitude: fitAltitude(2.4) }, 0);
+  // a little pink link between home and partner (only when both have a location)
+  const km = US_DOTS.length ? Math.round(6371 * 2 * Math.asin(Math.sqrt(Math.sin((HER.lat - HOME.lat) * Math.PI / 360) ** 2 +
+    Math.cos(HOME.lat * Math.PI / 180) * Math.cos(HER.lat * Math.PI / 180) * Math.sin((HER.lng - HOME.lng) * Math.PI / 360) ** 2))) : 0;
+  world.arcsData(US_DOTS.length ? [{ startLat: HOME.lat, startLng: HOME.lng, endLat: HER.lat, endLng: HER.lng }] : [])
+    .arcColor(() => ['rgba(142,197,255,0.9)', 'rgba(255,140,198,0.95)'])
+    .arcStroke(0.55).arcAltitudeAutoScale(0.3)
+    .arcDashLength(0.9).arcDashGap(0.06).arcDashInitialGap(() => Math.random()).arcDashAnimateTime(3200)
+    .arcLabel(() => `<div class="tooltip"><b>♥ us</b><br><small>${km.toLocaleString()} km apart</small></div>`);
+
+  const controls = world.controls();
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.35;
+  controls.enableDamping = true;
+  let idleTimer;
+  controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(idleTimer); });
+  controls.addEventListener('end', () => { idleTimer = setTimeout(() => controls.autoRotate = true, 15000); });
+  // on tall (portrait / reel) screens, pull the camera back so the whole globe fits the width
+  function fitAltitude(base) { const a = innerWidth / innerHeight; return a >= 1 ? base : Math.max(base, 2.24 / (0.86 * a) - 1); }
+  function flyTo(d) {
+    world.pointOfView({ lat: d.lat, lng: d.lng, altitude: Math.max(1.7, fitAltitude(2.4) - 0.9) }, 1500);
+    controls.autoRotate = false; clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => controls.autoRotate = true, 30000);
+  }
+
+  function resize() {
+    document.documentElement.classList.toggle('tall', REEL || innerWidth < innerHeight);
+    world.width(innerWidth).height(innerHeight);
+  }
+  addEventListener('resize', resize); resize();
+
+  // ---------- Stations (Radio Browser, free & open) ----------
+  // nl1/at1/fi1 are gone (Nov 2026); /json/servers lists only de1 + de2
+  const SERVERS = ['https://de1.api.radio-browser.info', 'https://de2.api.radio-browser.info'];
+  let stations = [];
+  let current = null;
+
+  async function api(path) {
+    for (const s of [...SERVERS].sort(() => Math.random() - 0.5)) {
+      try {
+        const r = await fetch(s + path, { headers: { 'Accept': 'application/json' } });
+        if (r.ok) return await r.json();
+      } catch (e) { /* try next mirror */ }
+    }
+    throw new Error('All radio servers unreachable');
+  }
+
+  async function load() {
+    const cached = cacheGet('radioCache3', 24 * 3600e3, true);
+    if (cached) return setStations(cached);
+    try {
+      const raw = await api('/json/stations/search?has_geo_info=true&hidebroken=true&order=clickcount&reverse=true&limit=6000');
+      const seen = new Set();
+      const s = raw.filter(x => x.url_resolved && x.geo_lat != null && x.geo_long != null)
+        .filter(x => !x.hls && !/^(FLV)$/i.test(x.codec || ''))   // HLS / FLV streams can't play in Chromium's <audio>
+        .filter(x => { const k = x.name.trim().toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; })
+        .map(x => ({
+          id: x.stationuuid, name: x.name.trim(), url: x.url_resolved,
+          lat: +x.geo_lat, lng: +x.geo_long,
+          place: [x.state, x.country].filter(Boolean).join(', ') || 'Somewhere on Earth',
+          country: x.country || '', cc: x.countrycode || '',
+          tags: (x.tags || '').split(',').slice(0, 2).join(' · '),
+          fav: x.favicon || '',
+          codec: x.codec || '', br: +x.bitrate || 0
+        }));
+      try { localStorage.removeItem('radioCache'); localStorage.removeItem('radioCache2'); localStorage.setItem('radioCache3', JSON.stringify({ t: Date.now(), s })); } catch (e) {}
+      setStations(s);
+    } catch (e) {
+      $('metaText').textContent = 'Radio directory unreachable · retrying in 30s';
+      setTimeout(load, 30000);
+    }
+  }
+
+  function setStations(s) {
+    stations = s;
+    refreshPoints();
+    $('q').placeholder = `Search ${stations.length.toLocaleString()} stations or countries`;
+    const last = localStorage.getItem('lastStation');
+    if (last) { const st = stations.find(x => x.id === last); if (st) select(st); }
+  }
+
+  // ---------- Player ----------
+  const audio = $('audio');
+  audio.volume = +(localStorage.getItem('vol') ?? 0.7);
+  $('vol').value = audio.volume;
+  $('vol').oninput = e => { audio.volume = e.target.value; localStorage.setItem('vol', audio.volume); };
+
+  function select(st) {
+    current = st;
+    $('sname').textContent = st.name;
+    const tech = [st.codec && st.codec !== 'UNKNOWN' ? st.codec : '', st.br ? st.br + 'k' : ''].filter(Boolean).join(' ');
+    let host = ''; try { host = new URL(st.url).hostname; } catch (e) {}
+    $('metaText').textContent = [st.place, tech, host].filter(Boolean).join('  ·  ');
+    const fav = $('fav');
+    fav.style.backgroundImage = ''; fav.textContent = flag(st.cc) || '📻';
+    if (st.fav) {
+      const img = new Image();
+      img.onload = () => { if (current === st && img.width > 16) { fav.style.backgroundImage = `url("${st.fav.replace(/"/g, '%22')}")`; fav.textContent = ''; } };
+      img.src = st.fav;
+    }
+    refreshPoints(); // refresh highlight
+    updateRings();
+    localStorage.setItem('lastStation', st.id);
+    showLocalTime(st);
+  }
+
+  function play(st) {
+    select(st);
+    flyTo(st);
+    closeSearch();
+    audio.src = st.url;
+    audio.play().catch(playFailed);
+    fetch(SERVERS[0] + '/json/url/' + st.id).catch(() => {}); // counts a click, like the API asks
+  }
+
+  // ---- Autoplay: Safari/Plash (WebKit) only allows sound that starts inside a real click.
+  // globe.gl reports dot clicks one animation frame later, which WebKit may not count as a click,
+  // so on the very first click/key anywhere we "unlock" the audio element by playing 0.1 s of silence.
+  const SILENT = 'data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
+  let audioUnlocked = false, pendingPlay = false;
+  function unlockAudio() {
+    if (pendingPlay) { pendingPlay = false; audio.play().catch(playFailed); return; }
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    if (audio.src) return;
+    audio.src = SILENT;
+    audio.play().then(() => { if (audio.src === SILENT) { audio.pause(); audio.removeAttribute('src'); audio.load(); } })
+      .catch(() => { audioUnlocked = false; });
+  }
+  addEventListener('pointerdown', unlockAudio, true);
+  addEventListener('keydown', unlockAudio, true);
+  function playFailed(e) {
+    if (e && e.name === 'NotAllowedError') { pendingPlay = true; toast('Click anywhere to start the sound ▶'); }
+    else if (e && e.name === 'AbortError') { /* he picked another station before this one started — fine */ }
+    else toast('Station offline · try another');
+  }
+
+  const PLAY = '<path d="M8 5v14l11-7z"/>', PAUSE = '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>';
+  audio.onplaying = () => { $('player').classList.remove('paused'); $('playIcon').innerHTML = PAUSE; };
+  audio.onpause = () => { $('player').classList.add('paused'); $('playIcon').innerHTML = PLAY; };
+  audio.onerror = () => { if (audio.src && audio.src !== SILENT) { audio.onpause(); toast('Station not responding · try another'); } };
+
+  $('playBtn').onclick = () => {
+    if (!current) return randomStation();
+    if (audio.paused) { if (!audio.src || audio.src === SILENT) return play(current); audio.play().catch(() => play(current)); }
+    else audio.pause();
+  };
+  $('randBtn').onclick = randomStation;
+  function randomStation() { if (stations.length) play(stations[Math.floor(Math.random() * Math.min(stations.length, 3000))]); }
+
+  // ---------- Search ----------
+  function openSearch() { $('search').classList.add('open'); $('q').focus(); }
+  function closeSearch() { $('search').classList.remove('open'); $('q').value = ''; $('results').innerHTML = ''; }
+  $('searchBtn').onclick = () => $('search').classList.contains('open') ? closeSearch() : openSearch();
+  addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeArticle(); closeBorn(); return closeSearch(); }
+    if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'Space') { e.preventDefault(); $('playBtn').click(); }
+    if (e.key === 'r') randomStation();
+    if (e.key === 'c') toggleCables();
+    if (e.key === 's') toggleSats();
+    if (e.key === '/') { e.preventDefault(); openSearch(); }
+  });
+  $('q').oninput = e => {
+    const q = e.target.value.trim().toLowerCase();
+    const box = $('results'); box.innerHTML = '';
+    if (q.length < 2) return;
+    stations.filter(s => s.name.toLowerCase().includes(q) || s.place.toLowerCase().includes(q) || s.tags.toLowerCase().includes(q))
+      .slice(0, 40).forEach(s => {
+        const div = document.createElement('div');
+        div.innerHTML = `${flag(s.cc)} ${esc(s.name)} <small>${esc(s.country)}</small>`;
+        div.onclick = () => play(s);
+        box.appendChild(div);
+      });
+  };
+
+  // ---------- Globe rings: playing station + outages ----------
+  let outages = [];
+  function updateRings() {
+    world.ringsData([...(current ? [{ lat: current.lat, lng: current.lng }] : []), ...outages.map(o => ({ ...o, out: true }))]);
+  }
+
+  // ---------- Internet outages (IODA, Georgia Tech — free, CORS-friendly) ----------
+  const IODA = 'https://api.ioda.inetintel.cc.gatech.edu/v2';
+  const LVL = { 1: 'minor', 2: 'moderate', 3: 'major' };
+  const SIG = { bgp: 'BGP', 'ping-slash24': 'Probing', 'merit-nt': 'Telescope', gtr: 'Google traffic' };
+  let outagesAt = 0;
+
+  async function loadOutages() {
+    let data = cacheGet('outages', 10 * 60e3), next = 10 * 60e3;
+    if (!data) {
+      try {
+        const now = Math.floor(Date.now() / 1000);
+        const r = await fetch(`${IODA}/outages/summary?from=${now - 86400}&until=${now}&entityType=country`);
+        if (!r.ok) throw new Error(r.status);
+        data = (await r.json()).data || [];
+        cacheSet('outages', data);
+      } catch (e) {
+        next = 2 * 60e3;
+        data = cacheGet('outages', 48 * 3600e3);   // offline: keep showing the last known picture
+      }
+    }
+    setTimeout(loadOutages, next);
+    if (!data) { if (!outages.length) $('olist').innerHTML = '<div class="empty">Outage data unreachable · retrying</div>'; return; }
+    outagesAt = cacheTime('outages') || Date.now();
+    // remember which countries we've already shown, so newcomers get a NEW tag
+    const known = new Set(cacheGet('outagesSeen', 36 * 3600e3) || []);
+    const firstRun = !known.size;
+    outages = data.map(x => {
+      const cc = x.entity && x.entity.code, c = window.COUNTRIES && COUNTRIES[cc];
+      if (!c) return null;
+      const s = (x.scores && x.scores.overall) || 0;
+      return {
+        cc, lat: c[0], lng: c[1], name: c[2], score: s,
+        lvl: s >= 1e6 ? 3 : s >= 1e5 ? 2 : 1,
+        signals: [...new Set(Object.keys(x.scores || {}).filter(k => k !== 'overall').map(k => SIG[k.split('.')[0]] || k.split('.')[0]))],
+        events: x.event_cnt || 1,
+        isNew: !firstRun && !known.has(cc)
+      };
+    }).filter(Boolean).sort((a, b) => b.score - a.score);
+    const fresh = outages.filter(o => o.isNew);
+    if (fresh.length) toast(`⚠ New outage${fresh.length > 1 ? 's' : ''}: ${fresh.slice(0, 3).map(o => o.name).join(', ')}`);
+    cacheSet('outagesSeen', [...new Set([...known, ...outages.map(o => o.cc)])]);
+    renderOutages();
+  }
+
+  function renderOutages() {
+    refreshPoints();
+    updateRings();
+    const major = outages.filter(o => o.lvl === 3).length;
+    $('ometa').textContent = `${outages.length}${major ? ` · ${major} major` : ''} · ${agoShort(outagesAt)}`;
+    const box = $('olist');
+    if (!outages.length) { box.innerHTML = '<div class="empty">All quiet · no outages detected</div>'; return; }
+    box.innerHTML = outages.map((o, i) => `<div class="orow" data-i="${i}" title="${esc(LVL[o.lvl])} outage">
+        <div class="fl">${flag(o.cc) || '🌐'}</div>
+        <div class="nm"><div>${esc(o.name)}${o.isNew ? '<span class="new">New</span>' : ''}</div>
+          <small>${esc(o.signals.join(' · '))}${o.events > 1 ? ' · ' + o.events + ' events' : ''}</small></div>
+        <div class="sev l${o.lvl}"><i></i><i></i><i></i></div></div>`).join('');
+    box.querySelectorAll('.orow').forEach(el => el.onclick = () => flyTo(outages[+el.dataset.i]));
+  }
+
+  // ---------- Threat intel (RSS via rss2json, which sends CORS headers) ----------
+  const FEEDS = [
+    ['The Hacker News', 'https://feeds.feedburner.com/TheHackersNews'],
+    ['BleepingComputer', 'https://www.bleepingcomputer.com/feed/'],
+    ['The Record', 'https://therecord.media/feed'],
+    ['SecurityWeek', 'https://feeds.feedburner.com/securityweek']
+  ];
+  const TOPICS = [
+    [/ransomware|extortion/i, 'Ransomware', '#f9a8d4'],
+    [/zero-day|0-day|actively exploited|exploit/i, 'Zero-day', 'var(--bad)'],
+    [/breach|leak|stolen|exposed|hacked|cyberattack/i, 'Breach', 'var(--orange)'],
+    [/ddos|botnet/i, 'DDoS', 'var(--acc)'],
+    [/backdoor|malware|trojan|stealer|spyware|\brat\b|worm/i, 'Malware', 'var(--violet)'],
+    [/phish|vishing|scam|social engineering/i, 'Phishing', 'var(--warn)'],
+    [/vulnerab|flaw|cve-|bug|bypass/i, 'Vulnerability', 'var(--orange)'],
+    [/patch|update|fix/i, 'Patch', 'var(--ok)'],
+    [/apt|state-sponsored|espionage|nation/i, 'APT', 'var(--violet)']
+  ];
+  let news = [], newsAt = 0;
+
+  // Backup source when rss2json is down or rate-limited: Hacker News search (Algolia, CORS-friendly, no key)
+  const HN_TERMS = ['ransomware', 'cyberattack', 'vulnerability', 'data breach', 'zero-day', 'malware'];
+  async function hnSecurity() {
+    const got = await Promise.all(HN_TERMS.map(async q => {
+      try {
+        const r = await fetch(`https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=6&numericFilters=points%3E3&query=${encodeURIComponent(q)}`);
+        const j = await r.json();
+        return (j.hits || []).map(h => ({ src: (() => { try { return new URL(h.url).hostname.replace(/^www\./, ''); } catch (e) { return 'Hacker News'; } })(),
+          title: decode(h.title || '').trim(), link: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`, t: (h.created_at_i || 0) * 1000 }));
+      } catch (e) { return []; }
+    }));
+    return got.flat().filter(i => !/^(ask|show|tell|launch) hn\b/i.test(i.title));   // keep news, skip discussions
+  }
+
+  async function loadNews() {
+    let items = cacheGet('news3', 30 * 60e3), next = 30 * 60e3;
+    if (!items) {
+      const got = await Promise.all(FEEDS.map(async ([src, url]) => {
+        try {
+          const r = await fetch('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(url));
+          const j = await r.json();
+          if (j.status !== 'ok') return [];
+          return j.items.map(i => ({ src, title: decode(i.title).trim(), link: i.link, sum: summary(i.description || i.content),
+            t: Date.parse(String(i.pubDate).replace(' ', 'T') + 'Z') || Date.now() }));
+        } catch (e) { return []; }
+      }));
+      let all = got.flat();
+      if (all.length < 8) all = all.concat(await hnSecurity());
+      const seenT = new Set();
+      all = all.filter(i => i.title && !seenT.has(i.title.toLowerCase()) && seenT.add(i.title.toLowerCase()));
+      if (all.length) {
+        all.sort((a, b) => b.t - a.t);
+        items = all.slice(0, 24);
+        cacheSet('news3', items);
+        if (got.flat().length < 8) next = 10 * 60e3;   // try the main feeds again sooner
+      } else {
+        next = 5 * 60e3;
+        items = cacheGet('news3', 7 * 86400e3);      // offline: keep the last headlines
+      }
+    }
+    setTimeout(loadNews, next);
+    if (!items) { if (!news.length) $('nlist').innerHTML = '<div class="empty">Security feeds unreachable · retrying</div>'; return; }
+    news = items; newsAt = cacheTime('news3') || Date.now();
+    renderNews();
+  }
+
+  // drop the bottom fade once he has scrolled to the last headline
+  $('nlist').addEventListener('scroll', e => { const l = e.target; l.classList.toggle('at-end', l.scrollTop + l.clientHeight >= l.scrollHeight - 4); });
+  function renderNews() {
+    const nsrc = new Set(news.map(n => n.src)).size;
+    $('nmeta').textContent = `${nsrc} source${nsrc === 1 ? '' : 's'} · ${agoShort(newsAt)}`;
+    $('nlist').innerHTML = news.map((n, i) => {
+      const [, tag, col] = TOPICS.find(([re]) => re.test(n.title)) || [0, 'Security', 'var(--fg2)'];
+      const isFresh = Date.now() - n.t < 3 * 3600e3;
+      return `<div class="nrow" data-i="${i}">
+        <div class="nmeta"><span class="tag" style="--c:${col}">${tag}</span><span>${esc(n.src)}</span><span>·</span>
+          <span class="${isFresh ? 'fresh' : ''}">${esc(agoShort(n.t))}</span></div>
+        <div class="ntitle">${esc(n.title)}</div></div>`;
+    }).join('');
+    $('nlist').querySelectorAll('.nrow').forEach(el => el.onclick = () => openArticle(news[+el.dataset.i]));
+  }
+  const topicOf = n => TOPICS.find(([re]) => re.test(n.title)) || [0, 'Security', 'var(--fg2)'];
+  function summary(html) {
+    const t = decode(String(html || '').replace(/<(br|p|div)[^>]*>/gi, ' ')).replace(/\s+/g, ' ').replace(/\[(\.\.\.|…)\]\s*$/, '').trim();
+    return t.length > 600 ? t.slice(0, 600).replace(/\s+\S*$/, '') + '…' : t;
+  }
+
+  // ---------- Article view: opens inside the wallpaper, ← Back closes it ----------
+  let readerTimer;
+  function openArticle(n) {
+    if (!n) return;
+    const [, tag, col] = topicOf(n), safe = /^https?:\/\//.test(n.link);
+    $('reader').innerHTML = `
+      <div class="rtop"><button class="back" id="rBack" title="Back (Esc)"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Back</button></div>
+      <div class="nmeta"><span class="tag" style="--c:${col}">${tag}</span><span>${esc(n.src)}</span><span>·</span><span>${esc(agoShort(n.t))}</span></div>
+      <div class="rtitle">${esc(n.title)}</div>
+      ${n.sum ? `<div class="rsum">${esc(n.sum)}</div>` : '<div class="rsum" style="color:var(--muted)">No summary for this one — open the full article to read it.</div>'}
+      ${safe ? `<div class="ractions">
+        <button class="btn primary" id="rOpen"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>Open article</button>
+        <button class="btn" id="rCopy">Copy link</button></div>
+      <div class="rnote">${esc(hostOf(n.link))}</div>` : ''}`;
+    $('intel').classList.add('reading');
+    $('intel').classList.remove('folded');
+    $('reader').scrollTop = 0;
+    $('rBack').onclick = closeArticle;
+    if (safe) {
+      $('rOpen').onclick = () => window.open(n.link, '_blank');
+      $('rCopy').onclick = () => copyText(n.link).then(ok => { $('rCopy').textContent = ok ? 'Copied ✓' : 'Copy failed'; });
+    }
+    clearTimeout(readerTimer);
+    readerTimer = setTimeout(closeArticle, 3 * 60e3);   // a wallpaper shouldn't stay stuck on one story
+  }
+  function closeArticle() { clearTimeout(readerTimer); $('intel').classList.remove('reading'); }
+  function hostOf(u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } }
+  async function copyText(t) {
+    try { await navigator.clipboard.writeText(t); return true; } catch (e) {}
+    try { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy'); ta.remove(); return ok; } catch (e) { return false; }
+  }
+
+  // ---------- Fold arrows: tuck any panel away, remembered across restarts ----------
+  const folded = new Set(cacheGet('folded', Infinity) || []);
+  document.querySelectorAll('.panel .fold').forEach(btn => {
+    const panel = btn.closest('.panel');
+    if (folded.has(panel.id)) panel.classList.add('folded');
+    btn.onclick = e => {
+      e.stopPropagation();
+      const on = panel.classList.toggle('folded');
+      on ? folded.add(panel.id) : folded.delete(panel.id);
+      cacheSet('folded', [...folded]);
+    };
+  });
+  setInterval(() => { if (news.length) renderNews(); if (outages.length) renderOutages(); }, 60e3); // keep "x min ago" honest
+
+  // ---------- Born today: one important historical figure born on today's date (home timezone) ----------
+  // Wikipedia "on this day" births (api.wikimedia.org, CORS *) → keep historical people (born ≤1945, died),
+  // skip villains, then pick the one people read most on Wikipedia (page views, last 30 days).
+  const VILLAIN = /serial killer|mass murderer|\bmurderer\b|\bmobster\b|\bgangster\b|crime boss|\bmafia\b|\bnazi\b|war criminal|\bterrorist\b|\bassassin\b|cult leader|\bdictator\b|\bcriminal\b/i;
+  let born = null, bornKey = '';
+  const wikiApi = q => fetch('https://en.wikipedia.org/w/api.php?' + new URLSearchParams({ format: 'json', formatversion: '2', origin: '*', ...q })).then(r => r.json());
+
+  async function loadBorn() {
+    const t = zparts(HOME.tz), key = `${t.month}-${t.day}`;
+    if (key === bornKey && born) return;
+    const c = cacheGet('born', 40 * 3600e3);
+    if (c && c.key === key) { born = c.p; bornKey = key; return renderBorn(); }
+    try {
+      const mm = String(t.month).padStart(2, '0'), dd = String(t.day).padStart(2, '0');
+      const r = await fetch(`https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/births/${mm}/${dd}`);
+      if (!r.ok) throw new Error(r.status);
+      const cands = ((await r.json()).births || []).map(b => ({ b, p: (b.pages || [])[0] }))
+        .filter(x => x.p && x.b.year <= 1945 && /\bdied\b/i.test(x.b.text) &&
+          !VILLAIN.test([x.b.text, x.p.description, x.p.extract].join(' ')));
+      if (!cands.length) throw new Error('none');
+      const views = {};
+      try {
+        for (let i = 0; i < cands.length; i += 50) {
+          const j = await wikiApi({ action: 'query', prop: 'pageviews', pvipdays: '30', titles: cands.slice(i, i + 50).map(x => x.p.title).join('|') });
+          ((j.query && j.query.pages) || []).forEach(pg => views[pg.title] = Object.values(pg.pageviews || {}).reduce((a, v) => a + (v || 0), 0));
+        }
+      } catch (e) { /* no view counts → fall back to "has a portrait + longest summary" */ }
+      const nameOf = x => x.p.normalizedtitle || x.p.title.replace(/_/g, ' ');
+      // without view counts, prefer people with roles history books care about
+      const FAMOUS = /\b(president|king|queen|emperor|empress|pope|prime minister|chancellor|tsar|sultan|shah|pharaoh|philosopher|composer|painter|sculptor|poet|novelist|playwright|writer|scientist|physicist|chemist|biologist|mathematician|astronomer|inventor|explorer|general|admiral|revolutionary|founder|saint|reformer)\b/i;
+      const haveViews = Object.values(views).some(v => v > 0);
+      const score = x => haveViews
+        ? (views[nameOf(x)] || 0) * 10 + (x.p.thumbnail ? 2000 : 0)
+        : (FAMOUS.test(x.p.description + ' ' + x.b.text) ? 5000 : 0) + (x.p.thumbnail ? 2000 : 0) + (x.b.year < 1900 ? 1000 : 0) + (x.p.extract || '').length;
+      const best = cands.sort((a, b) => score(b) - score(a))[0];
+      const died = (best.b.text.match(/died (\d{1,4})/i) || [])[1];
+      born = { name: nameOf(best), title: best.p.title, year: best.b.year, died: died ? +died : null,
+        desc: best.p.description || '', extract: best.p.extract || '',
+        img: best.p.thumbnail && /^https:\/\/upload\.wikimedia\.org\//.test(best.p.thumbnail.source) ? best.p.thumbnail.source : '',
+        url: (best.p.content_urls && best.p.content_urls.desktop && best.p.content_urls.desktop.page) || `https://en.wikipedia.org/wiki/${encodeURIComponent(best.p.title)}` };
+      bornKey = key;
+      cacheSet('born', { key, p: born });
+      renderBorn();
+    } catch (e) {
+      const old = cacheGet('born', 7 * 86400e3);
+      if (old && !born) { born = old.p; renderBorn(); }
+      else if (!born) $('bcard').innerHTML = '<div class="empty">History is out of reach · retrying</div>';
+      setTimeout(loadBorn, 10 * 60e3);
+    }
+  }
+
+  const portrait = (b, cls = 'portrait') => b.img
+    ? `<img class="${cls}" src="${esc(b.img)}" alt="" data-initial="${esc(b.name[0] || '?')}">`
+    : `<div class="${cls}">${esc(b.name[0] || '?')}</div>`;
+  // if a portrait can't load (offline), show the first letter instead
+  function fixPortraits(root) {
+    root.querySelectorAll('img.portrait').forEach(img => img.onerror = () => {
+      const d = document.createElement('div'); d.className = 'portrait'; d.textContent = img.dataset.initial; img.replaceWith(d);
+    });
+  }
+  const lifeYears = b => `${b.year}${b.died ? ' – ' + b.died : ''}`;
+  function renderBorn() {
+    if (!born) return;
+    const t = zparts(HOME.tz);
+    $('bmeta').textContent = new Date(Date.UTC(2000, t.month - 1, t.day)).toLocaleDateString([], { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    $('bcard').innerHTML = `${portrait(born)}<div style="min-width:0">
+      <div class="bname">${esc(born.name)}</div>
+      <div class="byears">${esc(lifeYears(born))} · ${t.year - born.year} years ago today</div>
+      ${born.desc ? `<div class="bdesc">${esc(born.desc)}</div>` : ''}
+      <div class="bhint">${t.year - born.year} years ago today</div></div>`;
+    fixPortraits($('bcard'));
+  }
+
+  let bornTimer;
+  async function openBorn() {
+    if (!born) return;
+    const b = born;
+    $('bread').innerHTML = `
+      <div class="rtop"><button class="back" id="bBack" title="Back (Esc)"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Back</button></div>
+      <div class="bhead">${portrait(b)}<div><div class="rtitle" style="margin:0">${esc(b.name)}</div>
+        <div class="byears">${esc(lifeYears(b))}</div>${b.desc ? `<div class="bdesc" style="-webkit-line-clamp:3">${esc(b.desc)}</div>` : ''}</div></div>
+      <div class="btext" id="btext"><p>${esc(b.extract)}</p></div>
+      <div class="ractions"><button class="btn primary" id="bOpen"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>Read on Wikipedia</button>
+        <button class="btn" id="bCopy">Copy link</button></div>`;
+    fixPortraits($('bread'));
+    $('born').classList.add('reading'); $('born').classList.remove('folded');
+    $('bread').scrollTop = 0;
+    $('bBack').onclick = closeBorn;
+    $('bOpen').onclick = () => window.open(b.url, '_blank');
+    $('bCopy').onclick = () => copyText(b.url).then(ok => { $('bCopy').textContent = ok ? 'Copied ✓' : 'Copy failed'; });
+    clearTimeout(bornTimer); bornTimer = setTimeout(closeBorn, 3 * 60e3);
+    // fetch the full introduction (several paragraphs) to read right here
+    try {
+      const j = await wikiApi({ action: 'query', prop: 'extracts', exintro: '1', explaintext: '1', redirects: '1', titles: b.title });
+      const text = ((j.query && j.query.pages && j.query.pages[0]) || {}).extract || '';
+      if (text && born === b && $('btext')) $('btext').innerHTML = text.split(/\n+/).filter(x => x.trim()).map(x => `<p>${esc(x)}</p>`).join('');
+    } catch (e) { /* keep the short summary */ }
+  }
+  function closeBorn() { clearTimeout(bornTimer); $('born').classList.remove('reading'); }
+  $('bcard').onclick = openBorn;
+  loadBorn();
+  setInterval(loadBorn, 15 * 60e3);   // picks a new person after midnight (home time)
+
+  // ---------- System metrics (Lively Wallpaper on Windows calls this every second) ----------
+  // Needs "--system-information" in LivelyInfo.json (the Lively zip from the build has it).
+  // In a plain browser / Plash on Mac nothing calls it, so the panel stays hidden. Add #demo to the URL to preview.
+  const netHist = [];
+  function fmtRate(bps) {
+    const v = Math.max(0, +bps || 0);
+    return v >= 1e6 ? (v / 1e6).toFixed(1) + ' MB/s' : v >= 1e3 ? (v / 1e3).toFixed(0) + ' KB/s' : v.toFixed(0) + ' B/s';
+  }
+  function gauge(id, pct, label) {
+    const p = Math.max(0, Math.min(100, +pct || 0)), g = $(id);
+    g.querySelector('.bar i').style.width = p + '%';
+    g.querySelector('b').textContent = label ?? Math.round(p) + '%';
+    g.classList.toggle('hot', p >= 90); g.classList.toggle('warm', p >= 75 && p < 90);
+  }
+  const shortHw = s => String(s || '').replace(/\((R|TM)\)/gi, '').replace(/\b(AMD|NVIDIA|GeForce|Intel|Corporation|Processor|CPU|Graphics)\b/gi, '')
+    .replace(/\d+-Core/i, '').replace(/@.*$/, '').replace(/\s+/g, ' ').trim();
+  window.livelySystemInformation = data => {
+    let o; try { o = typeof data === 'string' ? JSON.parse(data) : data; } catch (e) { return; }
+    if (!o) return;
+    $('sys').classList.add('on');
+    gauge('gCpu', o.CurrentCpu);
+    gauge('gGpu', o.CurrentGpu3D);
+    // RAM values are MB; guard against bytes just in case
+    let total = +o.TotalRam || 0, avail = +o.CurrentRamAvail || 0;
+    if (total > 1e7) { total /= 1048576; avail /= 1048576; }
+    if (total) gauge('gRam', (1 - avail / total) * 100);
+    $('netD').textContent = fmtRate(o.CurrentNetDown);
+    $('netU').textContent = fmtRate(o.CurrentNetUp);
+    $('hw1').textContent = [shortHw(o.NameCpu), shortHw(o.NameGpu)].filter(Boolean).join(' · ');
+    $('hw2').textContent = [total ? `RAM ${((total - avail) / 1024).toFixed(1)} / ${(total / 1024).toFixed(0)} GB` : '', shortHw(o.NameNetCard)].filter(Boolean).join(' · ');
+    netHist.push([+o.CurrentNetDown || 0, +o.CurrentNetUp || 0]);
+    if (netHist.length > 60) netHist.shift();
+    $('sysMeta').textContent = 'peak ' + fmtRate(Math.max(...netHist.map(v => v[0])));
+    drawSpark();
+  };
+  function drawSpark() {
+    const c = $('spark'), dpr = devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (!w) return;
+    c.width = w * dpr; c.height = h * dpr;
+    const g = c.getContext('2d'); g.scale(dpr, dpr);
+    const max = Math.max(1024, ...netHist.flat()) * 1.1;
+    g.strokeStyle = 'rgba(255,255,255,.05)'; g.lineWidth = 1;
+    [0.33, 0.66].forEach(f => { g.beginPath(); g.moveTo(0, h * f); g.lineTo(w, h * f); g.stroke(); });
+    [[0, '142,197,255'], [1, '180,180,180']].forEach(([k, rgb]) => {
+      const pts = netHist.map((v, i) => [(i / 59) * w, h - 1 - (v[k] / max) * (h - 2)]);
+      if (pts.length < 2) return;
+      g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y));
+      g.strokeStyle = `rgb(${rgb})`; g.lineWidth = 1.5; g.stroke();
+      g.lineTo(pts[pts.length - 1][0], h); g.lineTo(0, h); g.closePath();
+      const grad = g.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, `rgba(${rgb},.22)`); grad.addColorStop(1, `rgba(${rgb},0)`);
+      g.fillStyle = grad; g.fill();
+    });
+  }
+  if (DEMO) {   // preview the System panel outside Lively (#demo)
+    let t = 0;
+    setInterval(() => { t++; window.livelySystemInformation(JSON.stringify({
+      NameCpu: 'AMD Ryzen 7 7800X3D 8-Core Processor', NameGpu: 'NVIDIA GeForce RTX 4070', NameNetCard: 'Intel(R) Ethernet Controller I225-V',
+      CurrentCpu: 24 + 14 * Math.sin(t / 4) + Math.random() * 6, CurrentGpu3D: 62 + 20 * Math.sin(t / 9), CurrentRamAvail: 14000 + 800 * Math.sin(t / 15), TotalRam: 32768,
+      CurrentNetDown: Math.max(0, 2.2e6 * (1 + Math.sin(t / 5)) + Math.random() * 4e5), CurrentNetUp: 1.6e5 * (1 + Math.cos(t / 6)) + Math.random() * 5e4 })); }, 1000);
+  }
+
+  // ---------- Together counter 💕 (config.together; the first day counts as Day 1) ----------
+  const ymd = v => { const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(String(v || '')); return m ? [+m[1], +m[2], +m[3]] : null; };
+  const T = !PRIVATE && CFG.together ? CFG.together : null;
+  const US = T && ymd(T.since) ? { couple: ymd(T.since), firstDate: ymd(T.firstDate) || ymd(T.since) } : null;
+  const dayNum = (y, m, d) => Math.round(Date.UTC(y, m - 1, d) / 864e5);           // calendar days, no timezone drift
+  const todayNum = () => { const n = zparts(HOME.tz); return dayNum(n.year, n.month, n.day); };
+  const fromNum = n => new Date(n * 864e5).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  const ord = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
+
+  function renderUs() {
+    if (!US) { $('us').style.display = 'none'; return; }
+    const today = todayNum(), start = dayNum(...US.couple), first = dayNum(...US.firstDate);
+    const day = today - start + 1;
+    // upcoming moments: every 100 days, couple anniversaries, first-date anniversaries
+    const events = [];
+    for (let k = Math.max(100, Math.floor(day / 100) * 100); k <= day + 400; k += 100)
+      events.push({ n: start + k - 1, label: `${k.toLocaleString()} days` });
+    const y0 = zparts(HOME.tz).year;
+    for (let y = y0 - 1; y <= y0 + 2; y++) {
+      const a = y - US.couple[0], b = y - US.firstDate[0];
+      if (a > 0) events.push({ n: dayNum(y, US.couple[1], US.couple[2]), label: `${ord(a)} anniversary` });
+      if (b > 0) events.push({ n: dayNum(y, US.firstDate[1], US.firstDate[2]), label: `${ord(b)} first-date anniv.` });
+    }
+    const upcoming = events.filter(e => e.n >= today).sort((a, b) => a.n - b.n);
+    const todays = upcoming.filter(e => e.n === today), next = upcoming.find(e => e.n > today);
+    const us = $('us');
+    us.classList.toggle('party', todays.length > 0);
+    us.title = `Together since ${fromNum(start)} · first date ${fromNum(first)} (${(today - first + 1).toLocaleString()} days ago)` +
+      (next ? ` · next: ${next.label} on ${fromNum(next.n)}` : '');
+    us.innerHTML = `<span class="heart">♥</span><span>Day <b id="usDay">${day.toLocaleString()}</b></span><span class="sep">·</span>` +
+      (todays.length ? `<span id="usNext">today is our <b>${esc(todays.map(e => e.label).join(' & '))}</b> 🎉</span>`
+        : next ? `<span id="usNext">${esc(next.label)} in <b>${next.n - today}</b> days</span>` : '');
+  }
+  renderUs();
+  setInterval(renderUs, 60e3);  // rolls over at midnight
+
+  // ---------- Helpers ----------
+  function showLocalTime(st) {
+    // Rough local time from longitude (good enough for a vibe)
+    const offset = Math.round(st.lng / 15);
+    const t = new Date(Date.now() + (new Date().getTimezoneOffset() + offset * 60) * 60000);
+    $('localtime').textContent = `${t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} in ${st.country || 'there'}`;
+  }
+  setInterval(() => current && showLocalTime(current), 30000);
+
+  function cacheGet(key, maxAge, legacy) {
+    try {
+      const c = JSON.parse(localStorage.getItem(key) || 'null');
+      if (c && Date.now() - c.t < maxAge) return legacy ? c.s : c.v;
+    } catch (e) {}
+    return null;
+  }
+  function cacheTime(key) { try { return JSON.parse(localStorage.getItem(key) || 'null').t; } catch (e) { return 0; } }
+  function cacheSet(key, v) { try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), v })); } catch (e) {} }
+  // turns "&#8217;" etc. into plain text without ever running HTML
+  function decode(s) { return new DOMParser().parseFromString(String(s), 'text/html').documentElement.textContent; }
+  function agoShort(ms) {
+    const m = Math.max(0, Math.round((Date.now() - ms) / 60000));
+    return m < 1 ? 'now' : m < 60 ? m + 'm ago' : m < 1440 ? Math.round(m / 60) + 'h ago' : Math.round(m / 1440) + 'd ago';
+  }
+  function flag(cc) { return cc && cc.length === 2 ? String.fromCodePoint(...[...cc.toUpperCase()].map(c => 127397 + c.charCodeAt())) : ''; }
+  function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  let toastT;
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 4000); }
+
+  load();
+  loadOutages();
+  loadNews();
+})();
+</script>
+</body>
+</html>
