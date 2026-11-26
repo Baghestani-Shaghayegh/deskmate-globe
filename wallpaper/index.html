@@ -1358,9 +1358,11 @@ html.tall #hudread { bottom: calc(var(--edge) + 76px); font-size: min(10px, 2.2v
   window.livelySystemInformation = data => {
     let o; try { o = typeof data === 'string' ? JSON.parse(data) : data; } catch (e) { return; }
     if (!o) return;
+    if (!o.Source) fromLively = true;          // real Lively data wins over the stats helper
     $('sys').classList.add('on');
     gauge('gCpu', o.CurrentCpu);
-    gauge('gGpu', o.CurrentGpu3D);
+    $('gGpu').style.display = o.CurrentGpu3D == null ? 'none' : '';   // macOS helper can't read GPU % → hide the row
+    if (o.CurrentGpu3D != null) gauge('gGpu', o.CurrentGpu3D);
     // RAM values are MB; guard against bytes just in case
     let total = +o.TotalRam || 0, avail = +o.CurrentRamAvail || 0;
     if (total > 1e7) { total /= 1048576; avail /= 1048576; }
@@ -1393,6 +1395,21 @@ html.tall #hudread { bottom: calc(var(--edge) + 76px); font-size: min(10px, 2.2v
       g.fillStyle = grad; g.fill();
     });
   }
+  // ---------- Stats helper (Mac / Linux): helper/deskmate_stats.py serves real metrics on this computer ----------
+  // Windows gets them from Lively. Elsewhere, if the helper is running, poll it every second; if not, look again every 30 s.
+  let fromLively = false;
+  async function pollStatsHelper() {
+    if (fromLively || DEMO) return;
+    try {
+      const ac = new AbortController(); setTimeout(() => ac.abort(), 1500);
+      const r = await fetch('http://127.0.0.1:47800/stats', { signal: ac.signal, cache: 'no-store' });
+      if (!r.ok) throw new Error(r.status);
+      window.livelySystemInformation(await r.json());
+      setTimeout(pollStatsHelper, 1000);
+    } catch (e) { setTimeout(pollStatsHelper, 30000); }
+  }
+  setTimeout(pollStatsHelper, 2500);   // give Lively a moment to speak first
+
   if (DEMO) {   // preview the System panel outside Lively (#demo)
     let t = 0;
     setInterval(() => { t++; window.livelySystemInformation(JSON.stringify({

@@ -18,7 +18,7 @@ It's a single HTML file. Run it as your wallpaper with **Plash** (macOS) or **Li
 - **🛡️ Threat intel.** The latest security news, tagged by topic (ransomware, zero-day, breach…). Click to read inside the wallpaper.
 - **🚦 Service status.** GitHub, Cloudflare, Google Cloud, Slack, Zoom, Discord, OpenAI, Claude, Reddit and Dropbox.
 - **📜 Born today.** One notable historical figure born on today's date, with their Wikipedia introduction.
-- **🖥️ PC metrics (Windows + Lively).** CPU, GPU, memory, and network up/down with a live graph.
+- **🖥️ PC metrics.** CPU, GPU, memory, and network up/down with a live graph. On Windows they come from Lively. On a Mac (or Linux), install the small [stats helper](helper/README.md); it needs no GPU %.
 - **⏰ Clock and weather.** Your timezone, plus optional weather from [Open-Meteo](https://open-meteo.com).
 - **💕 Optional "someone far away".** Their local time, plus a glowing line between your two cities. There's also an optional day counter with 100-day milestones. Both are off unless you switch them on.
 - **⚙️ Settings panel.** Set your city (searched by name), °C/°F, the optional extras, and which panels to show. No files to edit.
@@ -45,6 +45,8 @@ Everything runs from free public APIs: no accounts, no keys, no servers. If you'
 - **Show on the wallpaper:** turn outages, threat intel, born today, services, satellites, cables or the desktop frame on and off.
 
 Settings are saved on your computer. No files to edit, nothing to rebuild.
+
+**PC metrics on a Mac:** run `bash install-mac.sh` in the [`helper/`](helper/README.md) folder once. It starts by itself at login and is local-only and read-only. The SYSTEM panel then shows real CPU, memory and network numbers.
 
 **Desktop icons:** the dashed `LOCALHOST · 127.0.0.1` frame above the globe is a spot for your desktop folders. Drag your icons into it. On Windows, first turn off *View → Auto arrange icons*.
 
@@ -95,7 +97,7 @@ python3 scripts/build_wallpaper.py && python3 tests/test_wallpaper.py
 
 - **Free APIs have rate limits.** If a source is busy, the wallpaper keeps the last data and retries.
 - **Satellites:** the full Starlink fleet comes from CelesTrak when it's reachable. Otherwise a few hundred come from a backup source.
-- **PC metrics** use Lively's documented system-info API, but haven't been tested on a real Windows PC yet. The panel hides itself everywhere else.
+- **PC metrics:** on Windows they use Lively's documented system-info API, which hasn't been tested on a real Windows PC yet. On a Mac they need the stats helper; without it, the panel hides itself.
 - **Radio stations come and go.** If one is offline, press <kbd>R</kbd>.
 
 ## Privacy
